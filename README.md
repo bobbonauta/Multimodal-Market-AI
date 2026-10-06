@@ -53,9 +53,75 @@ The initial version deliberately starts small and auditable. It provides the fou
 - backward-only alignment of completed higher-timeframe bars;
 - explicit leakage checks;
 - typed market-state primitives;
+- R-multiple evaluation with asymmetric payoff support;
 - a reproducible synthetic quickstart;
 - tests that fail if future higher-timeframe information is introduced;
 - project architecture and roadmap for multimodal/VLM extensions.
+
+## Reference hardware: you do not need a datacenter
+
+A substantial part of the research that motivated this project has been performed on an ordinary consumer desktop:
+
+| Component | Reference local machine |
+|---|---|
+| CPU | AMD Ryzen 7 5700X3D |
+| GPU | NVIDIA GeForce RTX 4070 SUPER, 12 GB VRAM |
+| RAM | 64 GB DDR4-3600 |
+| OS | Windows |
+| Python | 3.11.x in the original research environment |
+| CUDA toolkit | 12.6 |
+
+A CPU-only VPS has also been used successfully for dataset preparation, deterministic calculations, audits, evaluation and lightweight model arenas:
+
+| Component | Reference VPS |
+|---|---|
+| CPU | 6 vCPU AMD EPYC-class |
+| RAM | 12 GB |
+| GPU | None |
+| OS | Windows Server 2025 |
+
+One local InternVL3.5-2B-class adapter experiment used roughly **5.6 GiB process VRAM allocated**, around **7 GiB total GPU memory including desktop overhead**, and was profiled for a roughly **4–5 hour** consumer-GPU fine-tuning run with checkpoint/resume support.
+
+Cloud GPUs are useful for larger model families, but they are not required for the whole research stack. We explicitly want benchmarks from consumer GPUs and CPU-only systems.
+
+Full details: [Reference research environment](docs/RESEARCH_ENVIRONMENT.md) and [Benchmarking guide](docs/BENCHMARKING.md).
+
+## AI-assisted research and engineering
+
+The project has also been built using multiple AI systems as engineering and research assistants.
+
+The workflow has included:
+
+- **Claude Code** for implementation assistance, repository work, experiment scripting and review;
+- **OpenAI Codex** for independent code/repository analysis, implementation, testing and audit work;
+- **ChatGPT** for architecture discussion, research planning, interpretation checks and independent review.
+
+The human maintainer defines the market-domain constraints, objectives, acceptance criteria and final decisions. The repository, tests and reproducible experiment artifacts remain the source of truth.
+
+We consider this multi-agent workflow part of the research itself: different AI assistants can propose, implement and critique solutions, but important results still have to survive causal checks, tests and reproducible evaluation.
+
+Contributors may use any coding assistant or none at all. AI-generated code is welcome, but it must be reviewable and reproducible like any other contribution.
+
+More details: [Research environment](docs/RESEARCH_ENVIRONMENT.md).
+
+## Trading-system research examples
+
+The core is intentionally strategy-agnostic, but contributors need concrete ways to experiment with it. We therefore document several generic system families that can be built without depending on any proprietary method:
+
+- multi-timeframe trend + pullback;
+- slower indicator-confirmation systems;
+- momentum synchronization;
+- breakout + retest;
+- mean reversion;
+- relative-strength / cross-market models;
+- regime switching;
+- event-gated multimodal analysis;
+- asymmetric-payoff systems;
+- learned `MarketState` + lightweight decision heads.
+
+A useful comparison is between traditional **slow-adapting multi-timeframe confirmation systems** and newer state/multimodal approaches. Heavy smoothing and multiple confirmations can reduce noise, but they often react slowly after a regime change. That makes them good deterministic baselines for testing whether a learned representation adapts earlier without simply becoming noisier.
+
+See [Example market-system research patterns](docs/TRADING_SYSTEM_PATTERNS.md).
 
 ## Quick start
 
@@ -156,7 +222,8 @@ Particularly useful contributions include:
 - cache and dataset tooling;
 - benchmark results from consumer GPUs;
 - Linux/Windows portability;
-- public-market-data connectors with redistribution-safe licensing.
+- public-market-data connectors with redistribution-safe licensing;
+- generic trading-system examples that can serve as reproducible baselines.
 
 If you have an RTX 3060, 3090, 4070, 4090, 5090, an AMD GPU, a workstation, or just a CPU machine, your reproducible benchmark can still be useful.
 
@@ -194,7 +261,17 @@ Some questions we want to investigate openly:
 - How stable are multimodal readers across symbols, asset classes and timeframes?
 - When does batching change autoregressive multimodal outputs?
 - Can cached visual interpretation make large historical experiments practical?
+- Can learned state representations adapt faster than heavily smoothed multi-indicator baselines without increasing false signals?
 - Which evaluation metrics remain meaningful when profitable systems have asymmetric payoff distributions and relatively low win rates?
+
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Trading-system research patterns](docs/TRADING_SYSTEM_PATTERNS.md)
+- [Reference research environment](docs/RESEARCH_ENVIRONMENT.md)
+- [Benchmarking guide](docs/BENCHMARKING.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Contributing](CONTRIBUTING.md)
 
 ## Disclaimer
 
