@@ -58,6 +58,8 @@ The initial version deliberately starts small and auditable. It provides the fou
 - tests that fail if future higher-timeframe information is introduced;
 - project architecture and roadmap for multimodal/VLM extensions.
 
+For the current evidence and what has already been achieved in the research path, see [Project status and research evidence](docs/PROJECT_STATUS.md).
+
 ## Reference hardware: you do not need a datacenter
 
 A substantial part of the research that motivated this project has been performed on an ordinary consumer desktop:
@@ -122,6 +124,32 @@ The core is intentionally strategy-agnostic, but contributors need concrete ways
 A useful comparison is between traditional **slow-adapting multi-timeframe confirmation systems** and newer state/multimodal approaches. Heavy smoothing and multiple confirmations can reduce noise, but they often react slowly after a regime change. That makes them good deterministic baselines for testing whether a learned representation adapts earlier without simply becoming noisier.
 
 See [Example market-system research patterns](docs/TRADING_SYSTEM_PATTERNS.md).
+
+## From historical data to a fine-tuned reader
+
+The documented research path is now:
+
+```text
+historical data
+    -> immutable raw copy
+    -> normalized close timestamps / UTC
+    -> causal higher-timeframe construction
+    -> train / validation / test split
+    -> deterministic state + chart rendering
+    -> model-family adapter
+    -> LoRA/PEFT fine-tuning
+    -> checkpoint/resume
+    -> frozen recognition evaluation
+    -> strategy-specific R evaluation
+```
+
+Start with:
+
+- [Historical data sources and preparation](docs/DATA_SOURCES.md)
+- [Model adapter architecture](docs/MODEL_ADAPTERS.md)
+- [Fine-tuning multimodal market readers](docs/FINETUNING_GUIDE.md)
+
+A learned LoRA adapter is tied to its base-model architecture: an InternVL adapter is not expected to load directly into Qwen or Gemma. What can be reused is the **same dataset, targets, temporal split, evaluation protocol and leakage controls**.
 
 ## Quick start
 
@@ -250,6 +278,8 @@ The first milestone is not “build a profitable bot”. It is:
 
 > Build a clean, reproducible and extensible research stack where numerical models and multimodal AI can be compared fairly across multiple market timeframes without temporal leakage.
 
+For a more detailed view of what has already been demonstrated and what still needs open reproduction, see [PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
+
 ## Research directions
 
 Some questions we want to investigate openly:
@@ -266,11 +296,16 @@ Some questions we want to investigate openly:
 
 ## Documentation
 
+- [Project status and research evidence](docs/PROJECT_STATUS.md)
+- [Historical data sources and preparation](docs/DATA_SOURCES.md)
+- [Model adapter architecture](docs/MODEL_ADAPTERS.md)
+- [Fine-tuning guide](docs/FINETUNING_GUIDE.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Trading-system research patterns](docs/TRADING_SYSTEM_PATTERNS.md)
 - [Reference research environment](docs/RESEARCH_ENVIRONMENT.md)
 - [Benchmarking guide](docs/BENCHMARKING.md)
 - [Roadmap](docs/ROADMAP.md)
+- [Repository governance](docs/REPOSITORY_GOVERNANCE.md)
 - [Contributing](CONTRIBUTING.md)
 
 ## Disclaimer
