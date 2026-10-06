@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "multimodal-market-ai"
+version = "0.1.0a0"
+description = "Causal multi-timeframe and multimodal AI research framework for financial markets"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [
+  { name = "Multimodal Market AI contributors" }
+]
+keywords = [
+  "multimodal-ai",
+  "financial-markets",
+  "forex",
+  "time-series",
+  "multi-timeframe",
+  "causal-learning",
+  "vision-language-models",
+  "quantitative-finance",
+]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+  "numpy>=1.26",
+  "pandas>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.6",
+]
+
+[project.urls]
+Homepage = "https://github.com/bobbonauta/Multimodal-Market-AI"
+Repository = "https://github.com/bobbonauta/Multimodal-Market-AI"
+Issues = "https://github.com/bobbonauta/Multimodal-Market-AI/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
