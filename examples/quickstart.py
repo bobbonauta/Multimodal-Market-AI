@@ -8,7 +8,6 @@ from multimodal_market_ai.timeframes import (
     resample_ohlcv_close_indexed,
 )
 
-
 index = pd.date_range("2026-01-01 00:05", periods=24, freq="5min", tz="UTC")
 base = pd.DataFrame(
     {
