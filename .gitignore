@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Packaging
+build/
+dist/
+*.egg-info/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Secrets / local configuration
+.env
+.env.*
+*.key
+*.pem
+
+# Data and model artifacts
+data/
+datasets/
+models/
+weights/
+checkpoints/
+cache/
+work/
+runs/
+outputs/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+*.parquet
+*.feather
+*.sqlite
+*.db
+
+# Logs
+*.log
+logs/
+
+# Notebooks
+.ipynb_checkpoints/
