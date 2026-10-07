@@ -102,6 +102,8 @@ The human maintainer defines the market-domain constraints, objectives, acceptan
 
 We consider this multi-agent workflow part of the research itself: different AI assistants can propose, implement and critique solutions, but important results still have to survive causal checks, tests and reproducible evaluation.
 
+For multi-agent execution, operational handoffs and protocol changes are versioned in Git, and one active writer per branch/work tranche is preferred while other agents review independently. This avoids mixed provenance and conflicting autonomous edits. See [Experiment and AI-agent governance](docs/EXPERIMENT_GOVERNANCE.md).
+
 Contributors may use any coding assistant or none at all. AI-generated code is welcome, but it must be reviewable and reproducible like any other contribution.
 
 More details: [Research environment](docs/RESEARCH_ENVIRONMENT.md).
@@ -304,6 +306,7 @@ Some questions we want to investigate openly:
 - [Trading-system research patterns](docs/TRADING_SYSTEM_PATTERNS.md)
 - [Reference research environment](docs/RESEARCH_ENVIRONMENT.md)
 - [Benchmarking guide](docs/BENCHMARKING.md)
+- [Experiment and AI-agent governance](docs/EXPERIMENT_GOVERNANCE.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Repository governance](docs/REPOSITORY_GOVERNANCE.md)
 - [Contributing](CONTRIBUTING.md)
