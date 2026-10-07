@@ -29,17 +29,23 @@ See also:
 - [Trading system patterns](docs/TRADING_SYSTEM_PATTERNS.md)
 - [Research environment](docs/RESEARCH_ENVIRONMENT.md)
 - [Benchmarking guide](docs/BENCHMARKING.md)
+- [Experiment and AI-agent governance](docs/EXPERIMENT_GOVERNANCE.md)
 - [Roadmap](docs/ROADMAP.md)
 
 ## Ground rules
 
 1. **No future leakage.** If a model sees information unavailable at the decision timestamp, the experiment is invalid.
 2. **Do not hide assumptions.** State timestamp semantics, split rules, transaction costs, targets and model revisions.
-3. **Correctness before speed.** Faster batching or quantization is useful only when its effect on outputs is documented.
-4. **Do not upload restricted data.** Contributors are responsible for redistribution rights.
-5. **Do not upload credentials or personal account data.**
-6. **Do not claim guaranteed profitability.** Report evidence and limitations.
-7. **Keep strategy-specific logic modular.** The public core should remain reusable across different research systems.
+3. **Verify reused data against the current split.** Historical `TRAIN`/`FIT` labels are not enough: inspect actual timestamps and overlap before reusing replay buffers, caches or old training corpora.
+4. **Preserve the final holdout.** Do not repeatedly inspect a protected final test period to tune or select weak candidates.
+5. **Correctness before speed.** Faster batching or quantization is useful only when its effect on outputs is documented.
+6. **Version operational decisions.** Protocol, agent-role, stop/resume and other experiment-governance changes must be committed and pushed before they are treated as active.
+7. **Do not upload restricted data.** Contributors are responsible for redistribution rights.
+8. **Do not upload credentials or personal account data.**
+9. **Do not claim guaranteed profitability.** Report evidence and limitations.
+10. **Keep strategy-specific logic modular.** The public core should remain reusable across different research systems.
+
+For the full experiment protocol, including contamination vs non-independent evaluation, see [docs/EXPERIMENT_GOVERNANCE.md](docs/EXPERIMENT_GOVERNANCE.md).
 
 ## Development setup
 
@@ -74,7 +80,9 @@ A useful PR should explain:
 - how it was tested;
 - whether outputs changed;
 - hardware/software used when performance is involved;
-- any new dependency or license implication.
+- any new dependency or license implication;
+- any train/validation/test boundary or data-provenance change;
+- whether a protected holdout was accessed.
 
 For model integrations, include the exact model repository and revision when possible.
 
@@ -92,6 +100,8 @@ AI-generated code is not exempt from review. Contributors remain responsible for
 - avoiding secrets and private data;
 - verifying causal correctness;
 - describing limitations accurately.
+
+When several AI assistants are involved, prefer one active writer per branch/work tranche and use the others as reviewers or on separate branches. Record handoffs and changes of authority in Git before they take effect.
 
 ## Small PRs are welcome
 
