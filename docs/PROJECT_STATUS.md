@@ -36,18 +36,15 @@ The project did not start from a blank page. Its architecture is being extracted
 
 The transferable findings are still useful.
 
-### Small multimodal models can learn parts of market reading
+### Earlier multimodal scores are being revalidated
 
-A compact fine-tuned vision-language model was able to reproduce several labelled visual/structural market-reading tasks with useful accuracy on a frozen historical evaluation set.
+Earlier internal experiments showed that a compact fine-tuned vision-language model could learn several visual and structured market-reading tasks on consumer hardware.
 
-In one internal evaluation, a small VLM reached approximately:
+A later audit found that one underlying directional/state target contract used by that multitask model represented a temporary lack of confirmation as a third directional class. The corrected contract separates persistent direction, instantaneous confirmation and unavailable/unknown state.
 
-- **0.81 macro-F1** on a directional/structural reading task;
-- **above 0.97** on a simpler structured-recognition task;
-- around **0.72** on a harder visual task;
-- near-perfect agreement on one deterministic-like output task.
+Because the previously quoted internal scores came from a model trained and evaluated partly under the older target contract, those figures are **no longer treated as current research evidence or a benchmark**. They remain part of the historical experiment provenance and will be reconsidered only after the affected targets and model evaluations are regenerated under the corrected contract.
 
-These figures are **not yet a public benchmark** and they do **not** demonstrate trading profitability. They show that some visual and multi-timeframe recognition tasks can be learned by relatively small multimodal models on consumer hardware.
+The transferable conclusion is intentionally narrower: compact multimodal models remain worth testing on clearly defined, causally constructed tasks, but no earlier private score should be interpreted as currently certified evidence.
 
 ### Not every task transfers automatically
 
