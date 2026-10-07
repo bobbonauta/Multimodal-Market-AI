@@ -38,7 +38,7 @@ The framework is intended for research on **Forex, indices, commodities, equitie
 
 - **Causal by construction** — higher-timeframe context must be closed and available at the lower-timeframe decision timestamp.
 - **No target leakage** — future outcomes and POST information are kept outside model inputs.
-- **Multi-timeframe first** — M5/H1/H8, M15/H2/H12, M30/H4/D1 and other hierarchies are treated as synchronized structures rather than unrelated datasets.
+- **Multi-timeframe first** — configurable fast / operational / context hierarchies are treated as synchronized structures rather than unrelated datasets. The public framework does not prescribe private timeframe ladders.
 - **Multimodal** — numerical features, OHLC/indicator sequences, rendered charts and VLM outputs can coexist without forcing one model to relearn exact deterministic calculations.
 - **Strategy-agnostic** — the public core provides infrastructure; users define their own states, targets and market logic.
 - **Reproducible** — manifests, hashes, checkpoints, seeds and hardware/runtime measurements are first-class outputs.
