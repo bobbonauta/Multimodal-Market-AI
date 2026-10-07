@@ -12,12 +12,14 @@ Useful contributions include:
 - public-data connectors with clear licensing;
 - chart rendering;
 - VLM adapters;
+- frozen-feature extraction and cache tooling;
 - lower-VRAM inference or fine-tuning;
 - CPU baselines;
 - sequence models;
 - typed market-state extensions;
+- candidate manifests and leakage audits;
 - caching/checkpointing;
-- leakage tests;
+- read-only forward journals and recovery tests;
 - Windows/Linux/ROCm support;
 - reproducible hardware benchmarks;
 - documentation and examples;
@@ -29,17 +31,25 @@ See also:
 - [Trading system patterns](docs/TRADING_SYSTEM_PATTERNS.md)
 - [Research environment](docs/RESEARCH_ENVIRONMENT.md)
 - [Benchmarking guide](docs/BENCHMARKING.md)
+- [Public workflow synchronization](docs/PUBLIC_WORKFLOW_SYNC.md)
+- [Experiment and AI-agent governance](docs/EXPERIMENT_GOVERNANCE.md)
 - [Roadmap](docs/ROADMAP.md)
 
 ## Ground rules
 
 1. **No future leakage.** If a model sees information unavailable at the decision timestamp, the experiment is invalid.
 2. **Do not hide assumptions.** State timestamp semantics, split rules, transaction costs, targets and model revisions.
-3. **Correctness before speed.** Faster batching or quantization is useful only when its effect on outputs is documented.
-4. **Do not upload restricted data.** Contributors are responsible for redistribution rights.
-5. **Do not upload credentials or personal account data.**
-6. **Do not claim guaranteed profitability.** Report evidence and limitations.
-7. **Keep strategy-specific logic modular.** The public core should remain reusable across different research systems.
+3. **Verify reused data against the current split.** Historical `TRAIN`/`FIT` labels are not enough: inspect actual timestamps and overlap before reusing replay buffers, caches or old training corpora.
+4. **Freeze candidate selection before future supervision.** When a deterministic gate selects candidate events, its manifest should be audited and frozen before future-outcome labels are computed or exposed.
+5. **Preserve the final holdout.** Do not repeatedly inspect a protected final test period to tune or select candidates.
+6. **Correctness before speed.** Faster batching or quantization is useful only when its effect on outputs is documented.
+7. **Version operational decisions.** Protocol, agent-role, stop/resume and other experiment-governance changes should be committed before they are treated as canonical.
+8. **Do not upload restricted data.** Contributors are responsible for redistribution rights.
+9. **Do not upload credentials or personal account data.**
+10. **Do not claim guaranteed profitability.** Report evidence and limitations.
+11. **Keep strategy-specific logic modular.** The public core should remain reusable across different research systems.
+
+For the full experiment protocol, including contamination vs non-independent evaluation, see [docs/EXPERIMENT_GOVERNANCE.md](docs/EXPERIMENT_GOVERNANCE.md).
 
 ## Development setup
 
@@ -67,6 +77,8 @@ pytest
 
 ## Pull requests
 
+Pull requests are the standard contribution path for external contributors.
+
 A useful PR should explain:
 
 - what problem it solves;
@@ -74,11 +86,15 @@ A useful PR should explain:
 - how it was tested;
 - whether outputs changed;
 - hardware/software used when performance is involved;
-- any new dependency or license implication.
+- any new dependency or license implication;
+- any train/validation/test boundary or data-provenance change;
+- whether a protected holdout was accessed.
 
 For model integrations, include the exact model repository and revision when possible.
 
 For benchmark PRs, follow [docs/BENCHMARKING.md](docs/BENCHMARKING.md).
+
+Repository maintainers may also perform verified direct synchronization to `main` for canonical public-safe material. That maintainer path is documented in [Repository governance](docs/REPOSITORY_GOVERNANCE.md) and is not a substitute for review of external contributions.
 
 ## AI-assisted contributions
 
@@ -92,6 +108,8 @@ AI-generated code is not exempt from review. Contributors remain responsible for
 - avoiding secrets and private data;
 - verifying causal correctness;
 - describing limitations accurately.
+
+When several AI assistants are involved, prefer one active writer per branch/work tranche and use the others as reviewers or on explicitly separate work. Record important handoffs and changes of authority in Git before they become canonical.
 
 ## Small PRs are welcome
 
