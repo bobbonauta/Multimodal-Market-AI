@@ -2,6 +2,8 @@
 
 `main` is the protected integration branch. Contributions should arrive through pull requests.
 
+This file covers repository/branch protection. Operational rules for experiments and AI-assisted work are defined separately in [Experiment and AI-agent governance](EXPERIMENT_GOVERNANCE.md).
+
 ## Required repository ruleset for `main`
 
 Configure a GitHub repository ruleset targeting the default branch with these requirements:
@@ -21,6 +23,16 @@ Configure a GitHub repository ruleset targeting the default branch with these re
 - keep linear history optional; squash merge is preferred for external contributions.
 
 The repository-wide code owner is declared in `.github/CODEOWNERS`.
+
+## Operational changes must be versioned
+
+Repository-level and experiment-level operational decisions are not considered active merely because they appeared in chat, terminal history or an agent session.
+
+Changes such as agent-role assignments, stop/resume decisions, split/protocol changes and other experiment-governance rules must be written, committed and pushed on the relevant working branch before the new rule is treated as active.
+
+For AI-assisted work, prefer one active writer per branch/work tranche. Independent agents can audit read-only or work on separate branches until an explicit handoff is versioned.
+
+See [Experiment and AI-agent governance](EXPERIMENT_GOVERNANCE.md) for the full operational protocol.
 
 ## External contributions
 
