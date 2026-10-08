@@ -6,6 +6,8 @@ The principle is simple: **open workflow, closed strategy**.
 
 The public project can describe how to build, audit, cache and validate a multimodal market pipeline while keeping private the exact strategy rules, thresholds, signal semantics, private labels, datasets and checkpoints.
 
+The public core now includes strategy-agnostic primitives for artifact seals and exact record matching, purged temporal splits with training-only numeric statistics, allowlisted causal feature checks, and resumable chunk caches. These primitives do not constitute a selector-specific candidate manifest or a frozen-feature adapter.
+
 ## 1. Separate candidate selection from future outcomes
 
 A useful market-AI workflow should not start by letting a model search the entire history with future outcomes already attached.
@@ -42,6 +44,8 @@ A candidate audit should verify at least:
 - duplicate instrument/time/event keys are detected;
 - the source dataset and selector version are recorded;
 - the resulting manifest receives a content hash.
+
+The feature-level causal audit helper requires an explicit allowlist and availability timestamp for each selected input. It rejects declared forbidden columns and fails closed when required timestamps or columns are missing or invalid.
 
 A strategy-agnostic metadata record may look like:
 
@@ -114,6 +118,8 @@ compute chunk
 On resume, skip a chunk only when its metadata says it is complete **and** its stored hash matches the actual artifact.
 
 A file merely existing is not proof that a previous run finished correctly.
+
+The generic chunk-cache helper implements atomic data and metadata writes, dependency-bound reuse, exact expected chunk IDs, invalidation of stale or interrupted chunks, and a completeness check. Applying this helper to a particular frozen model and feature schema remains the caller's responsibility.
 
 ## 4. Labels remain a separate downstream process
 

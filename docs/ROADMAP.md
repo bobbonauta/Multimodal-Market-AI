@@ -27,8 +27,9 @@ A checked documentation/design item means the public contract is written; it doe
 - [ ] Event-gate interface
 - [x] Public specification for causal candidate manifests
 - [ ] Candidate-manifest reference implementation
-- [ ] Dataset manifests and provenance helpers
-- [ ] Train/validation/test temporal split helpers
+- [x] Strategy-agnostic artifact provenance and sealing helper
+- [x] Purged train/validation/test temporal split helper
+- [x] Feature-level causal input audit
 - [ ] Automated leakage/candidate audit report
 - [ ] Reusable inference/cache keys
 
@@ -65,6 +66,7 @@ Each adapter should document:
 ## Phase 4 — Frozen representations and fine-tuning recipes
 
 - [x] Public workflow specification for frozen VLM feature caches
+- [x] Generic resumable artifact chunk-cache primitives
 - [ ] Resumable frozen-feature cache helper
 - [ ] Hash/manifest validation for cached feature chunks
 - [ ] LoRA/PEFT reference recipe

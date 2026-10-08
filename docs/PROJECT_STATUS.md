@@ -40,9 +40,9 @@ The transferable findings are still useful.
 
 Earlier internal experiments showed that a compact fine-tuned vision-language model could learn several visual and structured market-reading tasks on consumer hardware.
 
-A later audit found that one underlying directional/state target contract used by that multitask model represented a temporary lack of confirmation as a third directional class. The corrected contract separates persistent direction, instantaneous confirmation and unavailable/unknown state.
+A later audit found a mismatch between a persistent state variable and a transient confirmation.
 
-Because the previously quoted internal scores came from a model trained and evaluated partly under the older target contract, those figures are **no longer treated as current research evidence or a benchmark**. They remain part of the historical experiment provenance and will be reconsidered only after the affected targets and model evaluations are regenerated under the corrected contract.
+Results that depend on the older contract have been **withdrawn from current evidence and are under reevaluation**. They will be reconsidered only after the affected targets and evaluations are regenerated under a corrected contract.
 
 The transferable conclusion is intentionally narrower: compact multimodal models remain worth testing on clearly defined, causally constructed tasks, but no earlier private score should be interpreted as currently certified evidence.
 

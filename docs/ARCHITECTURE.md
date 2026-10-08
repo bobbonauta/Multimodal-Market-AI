@@ -30,6 +30,8 @@ Before expensive model work, a deterministic selector may identify a smaller set
 
 The selector must be auditable independently from the downstream target.
 
+The public core provides reusable artifact sealing, exact record-ID comparison and one-to-one joins, purged temporal splitting, and a feature-level causal input audit. A selector-specific manifest and full automated candidate-audit report remain separate work.
+
 A candidate manifest should record enough information to prove that:
 
 - every selector input existed at `decision_ts`;
@@ -61,6 +63,8 @@ Two broad modes are supported conceptually:
 2. **frozen feature extraction** — the model remains frozen and its hidden representation is cached for downstream models.
 
 Frozen feature caches must remain linked to the exact candidate manifest, model revision, processor/prompt and renderer version that produced them.
+
+The public core also provides generic resumable chunk-cache primitives with atomic writes, dependency fingerprints, exact chunk-ID checks and completeness verification. A frozen-feature-specific cache adapter is still a separate milestone.
 
 ## Layer 4 — Typed market state
 
@@ -130,5 +134,6 @@ For every decision timestamp `t`:
 8. the candidate manifest should be frozen before future-outcome supervision is generated for that experiment;
 9. raw forward observations and derived decisions should remain semantically separate;
 10. previously observed market history must not be silently rewritten without provenance.
+11. preprocessing statistics must be fitted only on training rows and then applied unchanged to validation and test rows.
 
 Violating this contract is considered a correctness bug, not merely a modeling choice.
