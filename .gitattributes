@@ -1,0 +1,3 @@
+# Preserve reproducible fixture bytes on every checkout.
+examples/synthetic_candidates/*.csv text eol=lf
+examples/synthetic_candidates/*.json text eol=lf

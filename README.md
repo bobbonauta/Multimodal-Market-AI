@@ -60,6 +60,8 @@ The initial version deliberately starts small and auditable. It provides the fou
 
 For the current evidence and what has already been achieved in the research path, see [Project status and research evidence](docs/PROJECT_STATUS.md).
 
+For ready-to-inspect observations and selected records, see the [reproducible synthetic candidate example](examples/synthetic_candidates/README.md). It includes a declared selection rule, a committed manifest and seal, and a command that verifies regeneration without writing files.
+
 ## Reference hardware: you do not need a datacenter
 
 A substantial part of the research that motivated this project has been performed on an ordinary consumer desktop:

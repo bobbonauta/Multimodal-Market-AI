@@ -6,7 +6,7 @@ The principle is simple: **open workflow, closed strategy**.
 
 The public project can describe how to build, audit, cache and validate a multimodal market pipeline while keeping private the exact strategy rules, thresholds, signal semantics, private labels, datasets and checkpoints.
 
-The public core now includes strategy-agnostic primitives for artifact seals and exact record matching, purged temporal splits with training-only numeric statistics, allowlisted causal feature checks, and resumable chunk caches. These primitives do not constitute a selector-specific candidate manifest or a frozen-feature adapter.
+The public core now includes strategy-agnostic primitives for artifact seals and exact record matching, purged temporal splits with training-only numeric statistics, allowlisted causal feature checks, and resumable chunk caches. A [reproducible synthetic example](../examples/synthetic_candidates/README.md) publishes source observations, an explicit selector and its candidate manifest. A reusable candidate-manifest interface and a frozen-feature adapter remain separate milestones.
 
 ## 1. Separate candidate selection from future outcomes
 

@@ -1,0 +1,61 @@
+{
+  "causal_audit": {
+    "checked_features": [
+      "measurement",
+      "previous_measurement",
+      "delta"
+    ],
+    "result": "pass",
+    "rows_checked": 11
+  },
+  "data_origin": "entirely synthetic",
+  "records": [
+    {
+      "decision_ts": "2000-01-02T00:00:00+00:00",
+      "delta": 2.0,
+      "measurement": 12,
+      "previous_measurement": 10.0,
+      "record_id": "synthetic-001"
+    },
+    {
+      "decision_ts": "2000-01-04T00:00:00+00:00",
+      "delta": 3.0,
+      "measurement": 14,
+      "previous_measurement": 11.0,
+      "record_id": "synthetic-003"
+    },
+    {
+      "decision_ts": "2000-01-07T00:00:00+00:00",
+      "delta": 2.0,
+      "measurement": 15,
+      "previous_measurement": 13.0,
+      "record_id": "synthetic-006"
+    },
+    {
+      "decision_ts": "2000-01-08T00:00:00+00:00",
+      "delta": 1.0,
+      "measurement": 16,
+      "previous_measurement": 15.0,
+      "record_id": "synthetic-007"
+    },
+    {
+      "decision_ts": "2000-01-10T00:00:00+00:00",
+      "delta": 5.0,
+      "measurement": 17,
+      "previous_measurement": 12.0,
+      "record_id": "synthetic-009"
+    },
+    {
+      "decision_ts": "2000-01-12T00:00:00+00:00",
+      "delta": 3.0,
+      "measurement": 18,
+      "previous_measurement": 15.0,
+      "record_id": "synthetic-011"
+    }
+  ],
+  "schema": "synthetic-candidate-manifest/v1",
+  "selection_rule": "measurement > previous_measurement; first observation excluded",
+  "selector_revision": "synthetic-increase/v1",
+  "selector_sha256": "607b1fdb4fae96c0d2687c69e96cf0b73996fcbc5f43eb7cc17797bc60656afd",
+  "source_sha256": "dba7e61effcbd513084ea52d0c032a2af137c25e1d9adc90c2e8060402709881"
+}

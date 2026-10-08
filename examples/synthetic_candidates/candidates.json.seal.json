@@ -1,0 +1,19 @@
+{
+  "artifact_sha256": "b51ae63d5776621d31a833599045dfeec5295dce0ecc72c71d60cfc30dac620a",
+  "dependencies": {
+    "selector": "607b1fdb4fae96c0d2687c69e96cf0b73996fcbc5f43eb7cc17797bc60656afd",
+    "selector_revision": "synthetic-increase/v1",
+    "source": "dba7e61effcbd513084ea52d0c032a2af137c25e1d9adc90c2e8060402709881"
+  },
+  "dependency_fingerprint": "adf19ea8aba305ba02fcee28cdf0ab78a871756dec3994d474a3972d2446d381",
+  "record_ids": [
+    "synthetic-001",
+    "synthetic-003",
+    "synthetic-006",
+    "synthetic-007",
+    "synthetic-009",
+    "synthetic-011"
+  ],
+  "record_ids_sha256": "61a4344c814a3e32ed09886fdee4df49e99d45d1c06544256a76915abfdbc129",
+  "schema": "artifact-seal/v1"
+}

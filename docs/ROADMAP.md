@@ -26,6 +26,7 @@ A checked documentation/design item means the public contract is written; it doe
 - [ ] Deterministic feature plugin interface
 - [ ] Event-gate interface
 - [x] Public specification for causal candidate manifests
+- [x] Reproducible synthetic candidate example with committed source, manifest and seal
 - [ ] Candidate-manifest reference implementation
 - [x] Strategy-agnostic artifact provenance and sealing helper
 - [x] Purged train/validation/test temporal split helper
