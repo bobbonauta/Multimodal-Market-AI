@@ -1,157 +1,207 @@
 # Multimodal Market AI
 
-**Open-source multimodal, multi-timeframe and causal AI research for Forex and financial markets.**
+**Add causal numerical and multimodal AI to an existing EA, bot or research strategy without rewriting the strategy itself.**
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Project status](https://img.shields.io/badge/status-early%20alpha-orange.svg)](#project-status)
 
-Multimodal Market AI is a strategy-agnostic research framework for combining **numerical market data**, **multi-timeframe structure**, **chart/vision models**, and **structured decision layers** while preserving strict temporal causality.
+Multimodal Market AI is an open-source, strategy-agnostic framework for adding **causal market context, numerical models, chart/vision models and auditable AI decision layers** to trading systems that already exist.
 
-The long-term goal is to make it easier to experiment with AI systems that can learn from markets the way a human analyst does: not from a single flat feature vector, but from several synchronized time scales, numerical context, visual context and explicit state representations.
+You do **not** need to replace a mature bot or expose its proprietary rules. An existing MT4/MT5 EA, Python bot, backtester or private strategy can keep producing its own candidates, signals or state. This project provides a boundary around that system so you can attach synchronized market context, build leakage-safe datasets, compare simple numerical baselines with multimodal models, cache expensive model representations and validate everything before allowing an AI output to influence live decisions.
 
-> This is a research and engineering project, not a signal service, trading bot, or promise of profitability.
+> This is a research and engineering framework, not a signal service, a ready-made trading strategy, or a promise of profitability.
+
+## Already have a trading bot? Start here
+
+If you have a large existing codebase, the intended workflow is **augmentation, not replacement**:
+
+```text
+existing EA / bot / strategy
+        |
+        | timestamped candidates, state, features
+        v
+integration adapter
+        |
+        +--> causal market context
+        +--> synchronized higher-timeframe context
+        +--> numerical features
+        +--> optional chart / VLM representation
+        |
+        v
+AI / statistical layer
+        |
+        +--> score or ranking
+        +--> context / regime estimate
+        +--> risk or uncertainty estimate
+        +--> optional continuation / deterioration estimate
+        |
+        v
+research report, read-only live validation,
+or an output consumed by your existing bot
+```
+
+The strategy remains yours. The AI layer can be developed and tested independently.
+
+Three common integration paths are documented:
+
+1. **Python bot → direct DataFrame/API integration**;
+2. **MT4/MT5 EA → CSV/JSON/SQLite/IPC bridge → Python AI layer**;
+3. **historical bot decisions → offline dataset → model comparison → read-only forward validation**.
+
+See [Integrating an existing bot or EA](docs/INTEGRATING_EXISTING_BOTS.md) and the runnable [existing-bot integration example](examples/existing_bot_integration.py).
+
+## What this project can add to an existing system
+
+The public core is useful even when your entry/exit logic stays completely private. It can provide or support:
+
+- causal alignment of market context to the exact decision timestamp;
+- higher-timeframe construction without using information that was not yet available;
+- exact train/validation/test separation and purging when an outcome extends across a split boundary;
+- feature-availability audits that fail when a feature arrives after the decision time;
+- immutable candidate/artifact manifests, hashes and exact record-ID checks;
+- resumable, dependency-aware caches for expensive model inference;
+- numerical baselines before spending GPU time on multimodal models;
+- frozen VLM representations that can be compared against tabular models on the same rows;
+- read-only forward validation before any execution integration;
+- strategy-specific evaluation while keeping private rules outside the public repository.
+
+A model is only useful if it improves the system under a fair comparison. The framework therefore treats **"the AI did not add useful information" as a valid result**, not as a reason to force more training.
 
 ## Why this project exists
 
-Most market-AI experiments collapse very different problems into one model: feature calculation, chart perception, regime/context recognition, signal generation and economic evaluation. That makes results difficult to reproduce and makes leakage surprisingly easy.
+Many market-AI experiments mix feature calculation, chart perception, target creation, candidate selection and economic evaluation into one pipeline. That makes results difficult to reproduce and makes leakage surprisingly easy.
 
-This project separates those responsibilities.
+Multimodal Market AI separates those responsibilities:
 
 ```mermaid
 flowchart TD
-    A[Market data] --> B[Deterministic / numerical layer]
-    A --> C[Visual / multimodal layer]
-    B --> D[Typed market state]
+    A[Existing strategy or market data] --> B[Integration / deterministic layer]
+    A --> C[Optional visual / multimodal layer]
+    B --> D[Audited causal state]
     C --> D
-    D --> E[Decision layer]
-    E --> F[Evaluation in risk units / market-specific objectives]
+    D --> E[Model / decision layer]
+    E --> F[Strategy-defined evaluation]
 
     B --> G[Causality & leakage audit]
     C --> G
     D --> G
 ```
 
-The framework is intended for research on **Forex, indices, commodities, equities, crypto and other time-series markets**. Nothing in the core should depend on a proprietary trading method.
+The framework is intended for research on **Forex, indices, commodities, equities, crypto and other time-series markets**. The public core does not prescribe a proprietary trading method or private timeframe ladder.
 
 ## Core principles
 
-- **Causal by construction** — higher-timeframe context must be closed and available at the lower-timeframe decision timestamp.
-- **No target leakage** — future outcomes and POST information are kept outside model inputs.
-- **Multi-timeframe first** — configurable fast / operational / context hierarchies are treated as synchronized structures rather than unrelated datasets. The public framework does not prescribe private timeframe ladders.
-- **Multimodal** — numerical features, OHLC/indicator sequences, rendered charts and VLM outputs can coexist without forcing one model to relearn exact deterministic calculations.
-- **Strategy-agnostic** — the public core provides infrastructure; users define their own states, targets and market logic.
-- **Reproducible** — manifests, hashes, checkpoints, seeds and hardware/runtime measurements are first-class outputs.
-- **Local-first** — useful work should run on ordinary CPUs/GPUs where possible; expensive cloud GPUs are reserved for workloads that actually need them.
-- **Economic metrics are not classification accuracy** — market systems may be profitable with low win rates when payoff distributions are asymmetric. Evaluation modules should support expectancy, profit factor, drawdown and full return distributions rather than optimize only for “winning trades”.
+- **Bring your own strategy** — an existing system can remain intact and private.
+- **Causal by construction** — context must be closed and available at the decision timestamp.
+- **No target leakage** — future outcomes and retrospective information stay outside model inputs.
+- **Multi-timeframe first** — configurable hierarchies are synchronized rather than treated as unrelated datasets.
+- **Multimodal when useful** — numerical features, sequences, charts and VLM outputs can coexist.
+- **Baseline before complexity** — compare simple models before expensive multimodal training.
+- **Reproducible** — manifests, hashes, exact IDs, checkpoints, seeds and runtime measurements are first-class outputs.
+- **Fail closed** — missing required inputs, stale cache metadata or causal violations stop the pipeline instead of being silently ignored.
+- **Predictive skill is not profitability** — model metrics and economic evaluation are separate questions.
 
-## What is in the first public version
+## Current public capabilities
 
-The initial version deliberately starts small and auditable. It provides the foundation that later VLM/fine-tuning modules can build on:
+The repository currently includes:
 
-- causal OHLCV aggregation from a base timeframe to higher timeframes;
-- backward-only alignment of completed higher-timeframe bars;
-- explicit leakage checks;
+- causal OHLCV aggregation and backward-only higher-timeframe alignment;
+- explicit causality and feature-availability audits;
 - typed market-state primitives;
 - R-multiple evaluation with asymmetric payoff support;
-- a reproducible synthetic quickstart;
-- tests that fail if future higher-timeframe information is introduced;
-- project architecture and roadmap for multimodal/VLM extensions.
+- artifact sealing, dependency fingerprints and exact record-ID validation;
+- purged temporal split helpers and training-only preprocessing statistics;
+- resumable chunk-cache primitives with atomic writes;
+- a reproducible synthetic candidate workflow;
+- a generic adapter for attaching causal market context to events emitted by an existing bot;
+- tests designed to fail on common leakage, stale-artifact and identity errors;
+- documentation for VLM/fine-tuning and read-only forward-validation workflows.
 
-For the current evidence and what has already been achieved in the research path, see [Project status and research evidence](docs/PROJECT_STATUS.md).
+For what has been demonstrated internally and what remains open, see [Project status and research evidence](docs/PROJECT_STATUS.md).
 
-For ready-to-inspect observations and selected records, see the [reproducible synthetic candidate example](examples/synthetic_candidates/README.md). It includes a declared selection rule, a committed manifest and seal, and a command that verifies regeneration without writing files.
+## What we learned the hard way
 
-## Reference hardware: you do not need a datacenter
+This repository also documents failure modes encountered during internal research so other users do not need to rediscover them. Examples include:
 
-A substantial part of the research that motivated this project has been performed on an ordinary consumer desktop:
+- confusing a persistent state with a transient confirmation;
+- treating missing/unknown data as if it were a real neutral class;
+- comparing columns with the same-looking name but different semantic roles;
+- silently skipping a required source file because it was absent from a manifest;
+- reusing a cache merely because the output file exists;
+- fitting normalization on validation/test data;
+- splitting by decision timestamp while the target path crosses the split boundary;
+- allowing retrospective/audit-only information into model features;
+- tuning repeatedly on a protected test set;
+- spending GPU time before establishing a cheap numerical baseline.
 
-| Component | Reference local machine |
-|---|---|
-| CPU | AMD Ryzen 7 5700X3D |
-| GPU | NVIDIA GeForce RTX 4070 SUPER, 12 GB VRAM |
-| RAM | 64 GB DDR4-3600 |
-| OS | Windows |
-| Python | 3.11.x in the original research environment |
-| CUDA toolkit | 12.6 |
+See [Failure modes and lessons learned](docs/LESSONS_LEARNED.md).
 
-A CPU-only VPS has also been used successfully for dataset preparation, deterministic calculations, audits, evaluation and lightweight model arenas:
+## Minimal existing-bot example
 
-| Component | Reference VPS |
-|---|---|
-| CPU | 6 vCPU AMD EPYC-class |
-| RAM | 12 GB |
-| GPU | None |
-| OS | Windows Server 2025 |
+An existing bot can emit a row whenever it creates a candidate or decision. The framework can attach the latest market bar that was actually closed at that moment:
 
-One local InternVL3.5-2B-class adapter experiment used roughly **5.6 GiB process VRAM allocated**, around **7 GiB total GPU memory including desktop overhead**, and was profiled for a roughly **4–5 hour** consumer-GPU fine-tuning run with checkpoint/resume support.
+```python
+import pandas as pd
 
-Cloud GPUs are useful for larger model families, but they are not required for the whole research stack. We explicitly want benchmarks from consumer GPUs and CPU-only systems.
+from multimodal_market_ai.integration import attach_causal_market_context
 
-Full details: [Reference research environment](docs/RESEARCH_ENVIRONMENT.md) and [Benchmarking guide](docs/BENCHMARKING.md).
+bot_events = pd.DataFrame(
+    {
+        "event_id": ["evt-1", "evt-2"],
+        "decision_ts": ["2026-01-01T10:07:00Z", "2026-01-01T10:10:00Z"],
+        "symbol": ["SYNTH", "SYNTH"],
+        "bot_state": [0.25, 0.62],
+    }
+)
 
-## AI-assisted research and engineering
+bars = pd.DataFrame(
+    {
+        "open": [100.0, 101.0],
+        "high": [102.0, 103.0],
+        "low": [99.0, 100.0],
+        "close": [101.0, 102.0],
+    },
+    index=pd.to_datetime(["2026-01-01T10:05:00Z", "2026-01-01T10:10:00Z"]),
+)
 
-The project has also been built using multiple AI systems as engineering and research assistants.
-
-The workflow has included:
-
-- **Claude Code** for implementation assistance, repository work, experiment scripting and review;
-- **OpenAI Codex** for independent code/repository analysis, implementation, testing and audit work;
-- **ChatGPT** for architecture discussion, research planning, interpretation checks and independent review.
-
-The human maintainer defines the market-domain constraints, objectives, acceptance criteria and final decisions. The repository, tests and reproducible experiment artifacts remain the source of truth.
-
-We consider this multi-agent workflow part of the research itself: different AI assistants can propose, implement and critique solutions, but important results still have to survive causal checks, tests and reproducible evaluation.
-
-Contributors may use any coding assistant or none at all. AI-generated code is welcome, but it must be reviewable and reproducible like any other contribution.
-
-More details: [Research environment](docs/RESEARCH_ENVIRONMENT.md).
-
-## Trading-system research examples
-
-The core is intentionally strategy-agnostic, but contributors need concrete ways to experiment with it. We therefore document several generic system families that can be built without depending on any proprietary method:
-
-- multi-timeframe trend + pullback;
-- slower indicator-confirmation systems;
-- momentum synchronization;
-- breakout + retest;
-- mean reversion;
-- relative-strength / cross-market models;
-- regime switching;
-- event-gated multimodal analysis;
-- asymmetric-payoff systems;
-- learned `MarketState` + lightweight decision heads.
-
-A useful comparison is between traditional **slow-adapting multi-timeframe confirmation systems** and newer state/multimodal approaches. Heavy smoothing and multiple confirmations can reduce noise, but they often react slowly after a regime change. That makes them good deterministic baselines for testing whether a learned representation adapts earlier without simply becoming noisier.
-
-See [Example market-system research patterns](docs/TRADING_SYSTEM_PATTERNS.md).
-
-## From historical data to a fine-tuned reader
-
-The documented research path is now:
-
-```text
-historical data
-    -> immutable raw copy
-    -> normalized close timestamps / UTC
-    -> causal higher-timeframe construction
-    -> train / validation / test split
-    -> deterministic state + chart rendering
-    -> model-family adapter
-    -> LoRA/PEFT fine-tuning
-    -> checkpoint/resume
-    -> frozen recognition evaluation
-    -> strategy-specific R evaluation
+context = attach_causal_market_context(bot_events, bars)
+print(context)
 ```
 
-Start with:
+The event at `10:07` can see only the bar closed at `10:05`; the event at `10:10` may use the `10:10` close. The bot-specific `bot_state` is preserved unchanged.
 
-- [Historical data sources and preparation](docs/DATA_SOURCES.md)
-- [Model adapter architecture](docs/MODEL_ADAPTERS.md)
-- [Fine-tuning multimodal market readers](docs/FINETUNING_GUIDE.md)
+## From an existing strategy to an AI-assisted system
 
-A learned LoRA adapter is tied to its base-model architecture: an InternVL adapter is not expected to load directly into Qwen or Gemma. What can be reused is the **same dataset, targets, temporal split, evaluation protocol and leakage controls**.
+A practical development path is:
+
+```text
+existing bot decisions
+    -> immutable timestamped export
+    -> causal market/context attachment
+    -> feature and leakage audit
+    -> purged train / validation / test split
+    -> naive + tabular baseline
+    -> optional chart/VLM representation
+    -> compare incremental value on identical rows
+    -> read-only live validation
+    -> optional integration of model output back into the bot
+```
+
+The last step is optional. A user may keep the AI permanently read-only and use it only for analysis, ranking or monitoring.
+
+## Research results: what is useful to transfer
+
+Internal work has reinforced several general conclusions without requiring publication of any private strategy:
+
+- corrected causal datasets can materially change earlier conclusions, so target and state contracts must be versioned and audited;
+- lightweight numerical models can contain useful out-of-sample information and should be the first comparison point;
+- a frozen multimodal representation can be tested independently, and further fine-tuning should be stopped when it does not add meaningful incremental value over the numerical baseline;
+- predictive improvement does not by itself establish a positive economic edge;
+- expensive inference should be resumable, dependency-bound and exactly matched to the same candidate population used by cheaper baselines;
+- post-decision / post-entry state can be studied as a separate modelling problem rather than forcing every AI component to predict entry signals.
+
+Private strategy rules, private datasets, private target definitions and private economic results are deliberately excluded.
 
 ## Quick start
 
@@ -167,7 +217,7 @@ Linux/macOS:
 source .venv/bin/activate
 pip install -e ".[dev]"
 pytest
-python examples/quickstart.py
+python examples/existing_bot_integration.py
 ```
 
 Windows PowerShell:
@@ -176,45 +226,23 @@ Windows PowerShell:
 .\.venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
 pytest
-python examples\quickstart.py
+python examples\existing_bot_integration.py
 ```
 
-## Minimal example
+## Reference hardware
 
-```python
-import pandas as pd
+The research path has used ordinary consumer hardware as well as CPU-only infrastructure. A reference local environment uses a Ryzen 7 5700X3D, RTX 4070 SUPER 12 GB and 64 GB RAM; CPU-only systems remain useful for data preparation, audits and lightweight baselines. See [Reference research environment](docs/RESEARCH_ENVIRONMENT.md) and [Benchmarking guide](docs/BENCHMARKING.md).
 
-from multimodal_market_ai.timeframes import (
-    align_closed_higher_timeframe,
-    resample_ohlcv_close_indexed,
-)
+## AI-assisted research and engineering
 
-m5 = pd.DataFrame(
-    {
-        "open": [1.00, 1.01, 1.02, 1.03],
-        "high": [1.02, 1.03, 1.04, 1.05],
-        "low": [0.99, 1.00, 1.01, 1.02],
-        "close": [1.01, 1.02, 1.03, 1.04],
-        "volume": [10, 12, 9, 11],
-    },
-    index=pd.to_datetime(
-        ["2026-01-01 00:05Z", "2026-01-01 00:10Z", "2026-01-01 00:15Z", "2026-01-01 00:20Z"]
-    ),
-)
-
-m15 = resample_ohlcv_close_indexed(m5, "15min")
-aligned = align_closed_higher_timeframe(m5, m15, prefix="htf_")
-
-print(aligned)
-```
-
-The API assumes timestamps represent **bar close times**. A higher-timeframe row is visible only when its close timestamp is less than or equal to the lower-timeframe decision timestamp.
+The project has used multiple AI assistants for implementation, repository review and research planning. The human maintainer defines domain constraints and acceptance criteria; reproducible code, tests and artifacts remain the source of truth. AI-generated changes are not accepted as evidence merely because an assistant reports `PASS`.
 
 ## Planned architecture
 
 ```text
-market data
+existing strategy / market data
    |
+   +-- integration adapter
    +-- causal timeframe builder
    +-- deterministic feature engines
    +-- sequence encoders
@@ -222,82 +250,54 @@ market data
    +-- VLM adapters
              |
              v
-      structured market state
+      structured / learned state
              |
              v
-       decision / ranking heads
+       decision or ranking head
              |
              v
       strategy-defined evaluation
 ```
 
-Planned adapters and experiments include InternVL, Qwen-VL/Qwen-VL-family models, Gemma-family multimodal models and lightweight numerical/sequence baselines. Model support will be added only with reproducible tests and clear licensing notes.
+Planned model adapters include open multimodal families where licensing permits. Model support is added only with reproducible tests and clear provenance.
 
 ## We want contributors
 
-This project is intentionally open because useful improvements can come from people running completely different experiments on their own machines.
+Useful contributions include:
 
-You do **not** need to donate compute or join a P2P network. Clone the project, use it for your own research, improve something that matters to you, and send a pull request if the improvement is generalizable.
-
-Particularly useful contributions include:
-
-- NVIDIA / AMD / Intel GPU compatibility and profiling;
-- lower-VRAM inference and fine-tuning recipes;
-- faster VLM batching without changing outputs;
-- Qwen, InternVL, Gemma and other multimodal backends;
-- multi-timeframe renderers;
-- causal sequence-model baselines;
-- leakage-detection tests;
-- checkpoint/resume tooling;
-- cache and dataset tooling;
-- benchmark results from consumer GPUs;
+- adapters for existing Python bots, MT4/MT5 bridges and backtest exports;
+- public-data connectors with redistribution-safe licensing;
+- numerical/sequence baselines;
+- chart renderers and VLM adapters;
+- leakage-detection and temporal-split tests;
+- resumable cache and checkpoint tooling;
+- consumer-GPU and CPU benchmarks;
 - Linux/Windows portability;
-- public-market-data connectors with redistribution-safe licensing;
-- generic trading-system examples that can serve as reproducible baselines.
+- read-only forward-validation connectors.
 
-If you have an RTX 3060, 3090, 4070, 4090, 5090, an AMD GPU, a workstation, or just a CPU machine, your reproducible benchmark can still be useful.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) and the [roadmap](docs/ROADMAP.md).
+A contribution does not need to reveal a trading strategy. Generic infrastructure and reproducible integration examples are enough.
 
 ## What this repository will not contain
 
-To keep the project useful and legally clean, the public repository should not contain:
+The public repository should not contain:
 
-- private or licensed market datasets that cannot be redistributed;
+- proprietary strategy rules or private signal semantics;
+- private/licensed datasets that cannot be redistributed;
 - API keys, broker credentials or account data;
-- proprietary trading methods contributed without permission;
 - claims of guaranteed profitability;
-- future information disguised as model features;
-- model weights whose license does not allow redistribution.
-
-Users remain responsible for the licenses and terms of datasets and base models they choose to use.
+- future information disguised as features;
+- model weights whose licenses do not allow redistribution.
 
 ## Project status
 
-**Early alpha.** The repository is being built in public. APIs may change while the causal core and multimodal interfaces stabilize.
+**Early alpha.** The integration and causal core are usable research primitives, while model adapters and end-to-end examples are still expanding.
 
-The first milestone is not “build a profitable bot”. It is:
-
-> Build a clean, reproducible and extensible research stack where numerical models and multimodal AI can be compared fairly across multiple market timeframes without temporal leakage.
-
-For a more detailed view of what has already been demonstrated and what still needs open reproduction, see [PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
-
-## Research directions
-
-Some questions we want to investigate openly:
-
-- Can deterministic event gates reduce expensive VLM calls without losing important market states?
-- How much visual context is actually useful beyond numerical state representations?
-- Can a typed intermediate market state improve transfer between different model families?
-- Which consumer GPUs provide the best fine-tuning throughput per dollar?
-- How stable are multimodal readers across symbols, asset classes and timeframes?
-- When does batching change autoregressive multimodal outputs?
-- Can cached visual interpretation make large historical experiments practical?
-- Can learned state representations adapt faster than heavily smoothed multi-indicator baselines without increasing false signals?
-- Which evaluation metrics remain meaningful when profitable systems have asymmetric payoff distributions and relatively low win rates?
+The objective is not to ship a universal trading bot. It is to provide a clean way to **add, test and reject AI components around an existing market system without corrupting causality or forcing the original strategy to be rewritten**.
 
 ## Documentation
 
+- [Integrating an existing bot or EA](docs/INTEGRATING_EXISTING_BOTS.md)
+- [Failure modes and lessons learned](docs/LESSONS_LEARNED.md)
 - [Project status and research evidence](docs/PROJECT_STATUS.md)
 - [Historical data sources and preparation](docs/DATA_SOURCES.md)
 - [Model adapter architecture](docs/MODEL_ADAPTERS.md)
@@ -316,6 +316,4 @@ This software is provided for research and educational purposes. Financial marke
 
 ## License
 
-Code in this repository is licensed under the **Apache License 2.0**. See [LICENSE](LICENSE).
-
-Datasets, model weights and third-party models may be governed by separate licenses and are not automatically covered by Apache-2.0.
+Code in this repository is licensed under the Apache License 2.0. Datasets, model weights and third-party models may be governed by separate licenses.
