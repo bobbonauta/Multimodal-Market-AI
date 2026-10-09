@@ -1,54 +1,53 @@
 # Roadmap
 
-This roadmap is intentionally modular. Contributions do not have to follow the order exactly, but the causal core should remain stable while higher-level components evolve.
+This is the project to-do list.
 
-A checked documentation/design item means the public contract is written; it does **not** imply that the corresponding reference implementation is complete unless explicitly stated.
+A checked box `[x]` means that part exists in the public repository. An empty box `[ ]` means it is still planned.
 
 ## Phase 0 — Public foundation
 
 - [x] Project scope and architecture
 - [x] Apache-2.0 license
-- [x] Causal multi-timeframe alignment primitive
+- [x] Causal multi-timeframe alignment
 - [x] Basic leakage checks
 - [x] Typed `MarketState`
 - [x] R-multiple evaluation metrics
 - [x] Quickstart and tests
-- [x] Hardware/research-environment documentation
-- [x] Benchmarking guidelines
-- [x] Generic trading-system research patterns
 - [x] Existing-bot integration guide
-- [x] Generic event-to-causal-context adapter
+- [x] Generic event-to-market-context adapter
+- [x] Beginner-friendly multi-signal theory guide
+- [x] Public deterministic multi-signal combiner
+- [x] Runnable deterministic model example
 - [x] Failure-modes / lessons-learned guide
-- [x] Experiment/AI-agent governance
-- [x] Public/private synchronization rule: open workflow, closed strategy
+- [x] Public/private rule: open workflow, closed strategy
 
 ## Phase 1 — Data and deterministic core
 
 - [ ] Public-data connector examples
-- [ ] Timeframe-ladder configuration
+- [ ] Configurable timeframe hierarchy
 - [ ] Deterministic feature plugin interface
 - [ ] Event-gate interface
 - [x] Public specification for causal candidate manifests
-- [x] Reproducible synthetic candidate example with committed source, manifest and seal
+- [x] Reproducible synthetic candidate example with source, manifest and seal
 - [ ] Candidate-manifest reference implementation
-- [x] Strategy-agnostic artifact provenance and sealing helper
-- [x] Purged train/validation/test temporal split helper
+- [x] Artifact provenance and sealing helper
+- [x] Purged temporal split helper
 - [x] Feature-level causal input audit
 - [ ] Automated leakage/candidate audit report
 - [ ] Reusable inference/cache keys
 
-The candidate-manifest implementation should verify real timestamps, target-column exclusion, duplicates, source provenance and content hashes before expensive model work begins.
+The idea is simple: before expensive model work, prove which rows were selected, when their information became available, and whether the files still match the inputs that created them.
 
 ## Phase 2 — External-system integration
 
 - [x] Generic Python/DataFrame event adapter
-- [x] Example showing causal context attachment to an existing bot
+- [x] Example that connects an existing bot to causal market context
 - [ ] MT4/MT5 CSV/JSON bridge example
 - [ ] SQLite/IPC bridge example
 - [ ] Generic read-only model-output return channel
 - [ ] Multi-symbol integration helper
 
-The integration layer must not require the original strategy to be rewritten or published.
+The integration layer should let a user keep the original bot private and mostly unchanged.
 
 ## Phase 3 — Rendering and multimodal input
 
@@ -60,78 +59,72 @@ The integration layer must not require the original strategy to be rewritten or 
 
 ## Phase 4 — Model adapters
 
-Candidate families include:
+Planned model families include:
 
 - [ ] InternVL
 - [ ] Qwen multimodal/VL families
 - [ ] Gemma multimodal families where licensing permits
 - [ ] other open multimodal models proposed by contributors
 
-Each adapter should document:
+Each adapter should explain:
 
 - exact model/revision;
-- VRAM requirements;
-- precision/quantization;
-- expected input format;
-- structured-output behavior;
-- frozen-feature extraction behavior when supported;
+- memory requirements;
+- input format;
+- output format;
 - checkpoint/resume support;
-- license constraints.
+- license limits.
 
-## Phase 5 — Frozen representations and fine-tuning recipes
+## Phase 5 — Frozen representations and fine-tuning
 
-- [x] Public workflow specification for frozen VLM feature caches
-- [x] Generic resumable artifact chunk-cache primitives
-- [ ] Resumable frozen-feature cache helper
+- [x] Public design for frozen VLM feature caches
+- [x] Generic resumable chunk-cache primitives
+- [ ] Full frozen-feature cache example
 - [ ] Hash/manifest validation for cached feature chunks
 - [ ] LoRA/PEFT reference recipe
-- [ ] frozen-vision / trainable-projector variants
-- [ ] consumer-GPU profile targets
+- [ ] consumer-GPU profiles
 - [ ] checkpoint/resume validation
-- [ ] deterministic seeds and manifests
 - [ ] benchmark scripts for time/VRAM/RAM
 
-The frozen-feature path should remain usable independently from fine-tuning: a researcher may cache a base model representation once and compare multiple cheap downstream heads without repeatedly running the VLM.
+A frozen representation lets a user run an expensive visual model once, save its output, and test cheaper downstream models many times.
 
-## Phase 6 — Structured state and decision heads
+## Phase 6 — Decision models
 
 - [ ] Extended typed `MarketState`
 - [ ] visual + numerical fusion interface
 - [ ] logistic-regression baseline
 - [ ] gradient-boosting baseline
 - [ ] small MLP baseline
-- [ ] optional compact reasoning/decision-model interface
+- [ ] optional compact reasoning-model interface
 
-The goal is to compare sophisticated perception models while keeping downstream decisions cheap and auditable.
+The rule remains: simple model first, expensive model later.
 
 ## Phase 7 — Evaluation
 
 - [ ] Classification/regression metrics
 - [ ] R-multiple distribution reports
-- [ ] expectancy / PF / drawdown
+- [ ] expectancy / profit factor / drawdown
 - [ ] asymmetric payoff analysis
 - [ ] per-symbol and per-regime breakdowns
 - [ ] transaction-cost hooks
-- [ ] frozen-output re-evaluation under alternative exit policies
-- [ ] explicit lineage between candidate manifest, labels and evaluation outputs
-
-A model should not need to be retrained just because a researcher wants to test a different economic policy against already-frozen predictions.
+- [ ] frozen-output re-evaluation under alternative policies
+- [ ] exact lineage between candidates, labels and results
 
 ## Phase 8 — Read-only forward validation
 
 - [x] Public read-only forward-validation design
-- [ ] Generic append-only observation-journal implementation
+- [ ] Generic append-only observation journal
 - [ ] Raw-observation vs derived-decision schema
-- [ ] Closed-bar eligibility tests around pauses/weekends/holidays
-- [ ] Polling deduplication and restart-recovery tests
-- [ ] History-revision detector / provenance policy
+- [ ] Tests around pauses/weekends/holidays
+- [ ] Restart and duplicate handling tests
+- [ ] History-revision detector
 - [ ] Sanitized forward-audit export
 
-This phase validates causal behavior on a live/provider-specific feed without enabling order execution.
+This phase watches a live feed without letting the model place orders.
 
 ## Phase 9 — Community hardware matrix
 
-- [ ] CPU-only reference benchmark
+- [ ] CPU-only benchmark
 - [ ] NVIDIA 8–12 GB class
 - [ ] NVIDIA 16–24 GB class
 - [ ] NVIDIA workstation/datacenter class
@@ -139,21 +132,17 @@ This phase validates causal behavior on a live/provider-specific feed without en
 - [ ] Intel GPU where practical
 - [ ] Windows vs Linux comparisons
 
-## Good first issues
+## Good first tasks
 
-Potential starter tasks:
-
-1. Add a CSV/Parquet public-data example.
-2. Add an MT4/MT5 bridge example that emits generic timestamped events.
-3. Add a configurable multi-timeframe ladder.
-4. Add a generic candidate-manifest helper using synthetic/public data.
+1. Build three simple public signals and combine them with the deterministic helper.
+2. Replace one signal and compare the result fairly.
+3. Add a public CSV/Parquet market-data example.
+4. Add an MT4/MT5 bridge that exports generic timestamped events.
 5. Add a simple chart renderer.
-6. Add a resumable frozen-VLM feature-cache example.
-7. Add a benchmark result from a consumer GPU.
-8. Add a deterministic public baseline.
-9. Improve causality tests around market-session boundaries.
-10. Add a read-only append-only journal using synthetic feed fixtures.
-11. Add Linux/Windows setup notes.
-12. Add model-license documentation for one multimodal family.
+6. Add a frozen-VLM cache example.
+7. Add a consumer-GPU benchmark.
+8. Improve tests around market-session boundaries.
+9. Add a read-only append-only journal.
+10. Improve beginner-friendly setup notes.
 
-See [Integrating an existing bot or EA](INTEGRATING_EXISTING_BOTS.md), [Failure modes and lessons learned](LESSONS_LEARNED.md), and [Public workflow synchronization](PUBLIC_WORKFLOW_SYNC.md).
+Start with [Multi-signal and deterministic model](MULTI_SIGNAL_AND_DETERMINISTIC_MODEL.md), then [Integrating an existing bot or EA](INTEGRATING_EXISTING_BOTS.md).
