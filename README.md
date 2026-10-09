@@ -1,145 +1,198 @@
 # Multimodal Market AI
 
-**Add causal numerical and multimodal AI to an existing EA, bot or research strategy without rewriting the strategy itself.**
+**Add AI to an existing trading bot, or build a simple deterministic system from scratch and improve it step by step.**
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Project status](https://img.shields.io/badge/status-early%20alpha-orange.svg)](#project-status)
 
-Multimodal Market AI is an open-source, strategy-agnostic framework for adding **causal market context, numerical models, chart/vision models and auditable AI decision layers** to trading systems that already exist.
+## In one sentence
 
-You do **not** need to replace a mature bot or expose its proprietary rules. An existing MT4/MT5 EA, Python bot, backtester or private strategy can keep producing its own candidates, signals or state. This project provides a boundary around that system so you can attach synchronized market context, build leakage-safe datasets, compare simple numerical baselines with multimodal models, cache expensive model representations and validate everything before allowing an AI output to influence live decisions.
+This repository helps you **connect market data, simple rules, existing bots and AI without mixing everything together or accidentally using future information**.
 
-> This is a research and engineering framework, not a signal service, a ready-made trading strategy, or a promise of profitability.
-
-## Already have a trading bot? Start here
-
-If you have a large existing codebase, the intended workflow is **augmentation, not replacement**:
+You can use it in two ways:
 
 ```text
-existing EA / bot / strategy
-        |
-        | timestamped candidates, state, features
-        v
-integration adapter
-        |
-        +--> causal market context
-        +--> synchronized higher-timeframe context
-        +--> numerical features
-        +--> optional chart / VLM representation
-        |
-        v
-AI / statistical layer
-        |
-        +--> score or ranking
-        +--> context / regime estimate
-        +--> risk or uncertainty estimate
-        +--> optional continuation / deterioration estimate
-        |
-        v
-research report, read-only live validation,
-or an output consumed by your existing bot
+A) I already have a bot
+   my bot -> this framework -> tests / models / AI
+
+B) I do not have a bot
+   market data -> my simple rules -> deterministic model -> tests / models / AI
 ```
 
-The strategy remains yours. The AI layer can be developed and tested independently.
+You do not need to publish your private strategy.
 
-Three common integration paths are documented:
+> This is a research and engineering framework. It is not a ready-made trading strategy, a signal service or a promise of profit.
 
-1. **Python bot → direct DataFrame/API integration**;
-2. **MT4/MT5 EA → CSV/JSON/SQLite/IPC bridge → Python AI layer**;
-3. **historical bot decisions → offline dataset → model comparison → read-only forward validation**.
+## If you already have a bot
 
-See [Integrating an existing bot or EA](docs/INTEGRATING_EXISTING_BOTS.md) and the runnable [existing-bot integration example](examples/existing_bot_integration.py).
+You do **not** need to rewrite thousands of lines of code.
 
-## What this project can add to an existing system
+Your existing EA, Python bot or backtester can keep doing what it already does.
 
-The public core is useful even when your entry/exit logic stays completely private. It can provide or support:
+It can export a small row such as:
 
-- causal alignment of market context to the exact decision timestamp;
-- higher-timeframe construction without using information that was not yet available;
-- exact train/validation/test separation and purging when an outcome extends across a split boundary;
-- feature-availability audits that fail when a feature arrives after the decision time;
-- immutable candidate/artifact manifests, hashes and exact record-ID checks;
-- resumable, dependency-aware caches for expensive model inference;
-- numerical baselines before spending GPU time on multimodal models;
-- frozen VLM representations that can be compared against tabular models on the same rows;
-- read-only forward validation before any execution integration;
-- strategy-specific evaluation while keeping private rules outside the public repository.
-
-A model is only useful if it improves the system under a fair comparison. The framework therefore treats **"the AI did not add useful information" as a valid result**, not as a reason to force more training.
-
-## Why this project exists
-
-Many market-AI experiments mix feature calculation, chart perception, target creation, candidate selection and economic evaluation into one pipeline. That makes results difficult to reproduce and makes leakage surprisingly easy.
-
-Multimodal Market AI separates those responsibilities:
-
-```mermaid
-flowchart TD
-    A[Existing strategy or market data] --> B[Integration / deterministic layer]
-    A --> C[Optional visual / multimodal layer]
-    B --> D[Audited causal state]
-    C --> D
-    D --> E[Model / decision layer]
-    E --> F[Strategy-defined evaluation]
-
-    B --> G[Causality & leakage audit]
-    C --> G
-    D --> G
+```text
+event ID
+exact time
+symbol
+its own state or features
 ```
 
-The framework is intended for research on **Forex, indices, commodities, equities, crypto and other time-series markets**. The public core does not prescribe a proprietary trading method or private timeframe ladder.
+This project can then add market context that was really available at that moment, run tests, build datasets and compare models.
 
-## Core principles
+Simple picture:
 
-- **Bring your own strategy** — an existing system can remain intact and private.
-- **Causal by construction** — context must be closed and available at the decision timestamp.
-- **No target leakage** — future outcomes and retrospective information stay outside model inputs.
-- **Multi-timeframe first** — configurable hierarchies are synchronized rather than treated as unrelated datasets.
-- **Multimodal when useful** — numerical features, sequences, charts and VLM outputs can coexist.
-- **Baseline before complexity** — compare simple models before expensive multimodal training.
-- **Reproducible** — manifests, hashes, exact IDs, checkpoints, seeds and runtime measurements are first-class outputs.
-- **Fail closed** — missing required inputs, stale cache metadata or causal violations stop the pipeline instead of being silently ignored.
-- **Predictive skill is not profitability** — model metrics and economic evaluation are separate questions.
+```text
+existing EA / bot
+      |
+      v
+small integration adapter
+      |
+      +--> causal market data
+      +--> extra numerical context
+      +--> optional chart / visual AI
+      |
+      v
+simple model or AI model
+      |
+      v
+score / ranking / analysis / read-only live test
+```
 
-## Current public capabilities
+Start here: [Integrating an existing bot or EA](docs/INTEGRATING_EXISTING_BOTS.md).
 
-The repository currently includes:
+## If you do not have a bot yet
 
-- causal OHLCV aggregation and backward-only higher-timeframe alignment;
-- explicit causality and feature-availability audits;
-- typed market-state primitives;
-- R-multiple evaluation with asymmetric payoff support;
-- artifact sealing, dependency fingerprints and exact record-ID validation;
-- purged temporal split helpers and training-only preprocessing statistics;
-- resumable chunk-cache primitives with atomic writes;
-- a reproducible synthetic candidate workflow;
-- a generic adapter for attaching causal market context to events emitted by an existing bot;
-- tests designed to fail on common leakage, stale-artifact and identity errors;
-- documentation for VLM/fine-tuning and read-only forward-validation workflows.
+You can build a simple system directly inside this repository.
 
-For what has been demonstrated internally and what remains open, see [Project status and research evidence](docs/PROJECT_STATUS.md).
+The easiest first step is a **deterministic model**.
 
-## What we learned the hard way
+“Deterministic” means:
 
-This repository also documents failure modes encountered during internal research so other users do not need to rediscover them. Examples include:
+> Same data + same rules = same answer.
 
-- confusing a persistent state with a transient confirmation;
-- treating missing/unknown data as if it were a real neutral class;
-- comparing columns with the same-looking name but different semantic roles;
-- silently skipping a required source file because it was absent from a manifest;
-- reusing a cache merely because the output file exists;
-- fitting normalization on validation/test data;
-- splitting by decision timestamp while the target path crosses the split boundary;
-- allowing retrospective/audit-only information into model features;
-- tuning repeatedly on a protected test set;
-- spending GPU time before establishing a cheap numerical baseline.
+A simple system may use several small signals.
 
-See [Failure modes and lessons learned](docs/LESSONS_LEARNED.md).
+For example:
 
-## Minimal existing-bot example
+```text
+rule A: trend
+rule B: momentum
+rule C: structure
+        |
+        v
+majority / unanimous / weighted vote
+        |
+        v
+final deterministic signal
+```
 
-An existing bot can emit a row whenever it creates a candidate or decision. The framework can attach the latest market bar that was actually closed at that moment:
+Every rule is replaceable. You can remove one rule, add another, recalculate the model and compare the result.
+
+Read the simple explanation: [Multi-signal and deterministic model](docs/MULTI_SIGNAL_AND_DETERMINISTIC_MODEL.md).
+
+Run the public example:
+
+```bash
+python examples/deterministic_multi_signal.py
+```
+
+## What is a multi-signal system?
+
+A **signal** is one clue.
+
+A **multi-signal system** uses several clues instead of trusting only one.
+
+Imagine three people looking at the weather:
+
+- one sees dark clouds;
+- one feels strong wind;
+- one hears thunder.
+
+Each clue says something. The final decision uses the clues together.
+
+A market system can do the same thing with independent rules.
+
+In the public helper:
+
+- `+1` means a rule points one way;
+- `-1` means it points the other way;
+- `0` means that rule has no opinion right now.
+
+The project can combine these signals with:
+
+- **majority** — more votes win;
+- **unanimous** — all active votes must agree;
+- **weighted** — some rules count more than others.
+
+The exact indicators and rules are yours.
+
+## Why build a deterministic model before AI?
+
+Because AI should have something simple to beat.
+
+A good order is:
+
+```text
+1. simple rules
+2. deterministic model
+3. simple statistical model
+4. optional multimodal / visual AI
+5. compare them on the same data
+```
+
+If a simple model works as well as a much larger AI, the larger AI may not be worth the cost.
+
+## What this project can do
+
+The public code already includes tools for:
+
+- joining market data to the exact time of a decision;
+- building higher timeframes without looking into the future;
+- checking that a feature really existed when the decision was made;
+- keeping train, validation and test periods separate;
+- detecting missing, duplicate or changed records;
+- sealing files with hashes so stale results are not reused by mistake;
+- resuming long jobs safely;
+- connecting an existing bot to the research pipeline;
+- combining simple directional signals into a deterministic model;
+- comparing simple baselines with more expensive AI models;
+- testing live data in read-only mode before execution is ever considered.
+
+## A simple full path
+
+A complete experiment can look like this:
+
+```text
+market data
+   |
+   v
+simple signals or existing bot events
+   |
+   v
+deterministic model / candidate list
+   |
+   v
+causal audit
+   |
+   v
+train / validation / test split
+   |
+   +--> simple numerical baseline
+   |
+   +--> optional visual / multimodal model
+   |
+   v
+fair comparison on the same rows
+   |
+   v
+read-only live validation
+```
+
+Nothing forces you to use every step.
+
+## Existing-bot example
 
 ```python
 import pandas as pd
@@ -150,7 +203,6 @@ bot_events = pd.DataFrame(
     {
         "event_id": ["evt-1", "evt-2"],
         "decision_ts": ["2026-01-01T10:07:00Z", "2026-01-01T10:10:00Z"],
-        "symbol": ["SYNTH", "SYNTH"],
         "bot_state": [0.25, 0.62],
     }
 )
@@ -165,43 +217,112 @@ bars = pd.DataFrame(
     index=pd.to_datetime(["2026-01-01T10:05:00Z", "2026-01-01T10:10:00Z"]),
 )
 
-context = attach_causal_market_context(bot_events, bars)
-print(context)
+joined = attach_causal_market_context(bot_events, bars)
+print(joined)
 ```
 
-The event at `10:07` can see only the bar closed at `10:05`; the event at `10:10` may use the `10:10` close. The bot-specific `bot_state` is preserved unchanged.
+The event at `10:07` can see the bar closed at `10:05`. It cannot see the bar that closes at `10:10`, because that bar was still in the future at `10:07`.
 
-## From an existing strategy to an AI-assisted system
+## Deterministic model example
 
-A practical development path is:
+```python
+import pandas as pd
+
+from multimodal_market_ai.deterministic import combine_directional_signals
+
+frame = pd.DataFrame(
+    {
+        "trend": [1, 1, -1],
+        "momentum": [1, -1, -1],
+        "structure": [0, 1, -1],
+    }
+)
+
+result = combine_directional_signals(
+    frame,
+    ["trend", "momentum", "structure"],
+    policy="majority",
+)
+
+print(result)
+```
+
+You can replace `trend`, `momentum` and `structure` with your own rules. The rest of the pipeline can stay the same.
+
+## What does “causal” mean?
+
+It means **do not use information from the future**.
+
+Example:
 
 ```text
-existing bot decisions
-    -> immutable timestamped export
-    -> causal market/context attachment
-    -> feature and leakage audit
-    -> purged train / validation / test split
-    -> naive + tabular baseline
-    -> optional chart/VLM representation
-    -> compare incremental value on identical rows
-    -> read-only live validation
-    -> optional integration of model output back into the bot
+Decision time: 10:07
+Bar closed at: 10:05  -> allowed
+Bar closed at: 10:10  -> not allowed yet
 ```
 
-The last step is optional. A user may keep the AI permanently read-only and use it only for analysis, ranking or monitoring.
+This sounds obvious, but it is one of the easiest mistakes to make when working with historical data.
 
-## Research results: what is useful to transfer
+## What does “baseline” mean?
 
-Internal work has reinforced several general conclusions without requiring publication of any private strategy:
+A **baseline** is a simple model used as a reference.
 
-- corrected causal datasets can materially change earlier conclusions, so target and state contracts must be versioned and audited;
-- lightweight numerical models can contain useful out-of-sample information and should be the first comparison point;
-- a frozen multimodal representation can be tested independently, and further fine-tuning should be stopped when it does not add meaningful incremental value over the numerical baseline;
-- predictive improvement does not by itself establish a positive economic edge;
-- expensive inference should be resumable, dependency-bound and exactly matched to the same candidate population used by cheaper baselines;
-- post-decision / post-entry state can be studied as a separate modelling problem rather than forcing every AI component to predict entry signals.
+Example:
 
-Private strategy rules, private datasets, private target definitions and private economic results are deliberately excluded.
+```text
+simple deterministic model = baseline A
+simple numerical model     = baseline B
+large visual AI            = model C
+```
+
+If model C does not improve on A or B, more complexity may not help.
+
+## What does “read-only live test” mean?
+
+The model watches live data and writes its answer, but it **cannot place or change orders**.
+
+This lets you check:
+
+- timestamps;
+- missing data;
+- restarts;
+- duplicate events;
+- latency;
+- whether live behavior matches the offline tests.
+
+Only after that should a separate project decide whether a model output may affect execution.
+
+## Mistakes we already made so you do not have to repeat them
+
+The repository also records errors found during internal research.
+
+Examples:
+
+- mixing a long-lived state with a short-lived confirmation;
+- treating missing information like a real signal;
+- comparing two columns that had similar names but different meanings;
+- reusing an old cache after one of its inputs changed;
+- training preprocessing on validation/test data;
+- letting a future outcome cross a time split;
+- using audit-only future information as a model feature;
+- checking the final test set too many times;
+- spending GPU time before testing a cheap baseline;
+- assuming a visual model is useful just because it contains some signal.
+
+See [Failure modes and lessons learned](docs/LESSONS_LEARNED.md).
+
+## Research results we can share safely
+
+Internal work has shown several general lessons:
+
+- fixing data or target definitions can change earlier conclusions;
+- simple numerical models can contain useful out-of-sample information;
+- a visual representation can contain information but still add no useful value beyond a simpler model;
+- better prediction metrics do not automatically mean a profitable system;
+- expensive model work should be resumable and tied to exact data IDs;
+- post-decision or trade-management questions can be studied separately from entry questions.
+
+Private strategy rules, private datasets and private economic results are not published here.
 
 ## Quick start
 
@@ -217,6 +338,7 @@ Linux/macOS:
 source .venv/bin/activate
 pip install -e ".[dev]"
 pytest
+python examples/deterministic_multi_signal.py
 python examples/existing_bot_integration.py
 ```
 
@@ -226,94 +348,50 @@ Windows PowerShell:
 .\.venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
 pytest
+python examples\deterministic_multi_signal.py
 python examples\existing_bot_integration.py
 ```
 
-## Reference hardware
+## Main rules of the project
 
-The research path has used ordinary consumer hardware as well as CPU-only infrastructure. A reference local environment uses a Ryzen 7 5700X3D, RTX 4070 SUPER 12 GB and 64 GB RAM; CPU-only systems remain useful for data preparation, audits and lightweight baselines. See [Reference research environment](docs/RESEARCH_ENVIRONMENT.md) and [Benchmarking guide](docs/BENCHMARKING.md).
-
-## AI-assisted research and engineering
-
-The project has used multiple AI assistants for implementation, repository review and research planning. The human maintainer defines domain constraints and acceptance criteria; reproducible code, tests and artifacts remain the source of truth. AI-generated changes are not accepted as evidence merely because an assistant reports `PASS`.
-
-## Planned architecture
-
-```text
-existing strategy / market data
-   |
-   +-- integration adapter
-   +-- causal timeframe builder
-   +-- deterministic feature engines
-   +-- sequence encoders
-   +-- chart renderer
-   +-- VLM adapters
-             |
-             v
-      structured / learned state
-             |
-             v
-       decision or ranking head
-             |
-             v
-      strategy-defined evaluation
-```
-
-Planned model adapters include open multimodal families where licensing permits. Model support is added only with reproducible tests and clear provenance.
-
-## We want contributors
-
-Useful contributions include:
-
-- adapters for existing Python bots, MT4/MT5 bridges and backtest exports;
-- public-data connectors with redistribution-safe licensing;
-- numerical/sequence baselines;
-- chart renderers and VLM adapters;
-- leakage-detection and temporal-split tests;
-- resumable cache and checkpoint tooling;
-- consumer-GPU and CPU benchmarks;
-- Linux/Windows portability;
-- read-only forward-validation connectors.
-
-A contribution does not need to reveal a trading strategy. Generic infrastructure and reproducible integration examples are enough.
-
-## What this repository will not contain
-
-The public repository should not contain:
-
-- proprietary strategy rules or private signal semantics;
-- private/licensed datasets that cannot be redistributed;
-- API keys, broker credentials or account data;
-- claims of guaranteed profitability;
-- future information disguised as features;
-- model weights whose licenses do not allow redistribution.
+- **Bring your own strategy** — or build a simple public deterministic one here.
+- **Do not look into the future** — every input must exist at decision time.
+- **Keep pieces separate** — data, signals, labels, models and evaluation should not be mixed together.
+- **Change one piece at a time** — then measure what changed.
+- **Simple before expensive** — baseline first, GPU later.
+- **Fail closed** — bad or missing data should stop the pipeline instead of being silently ignored.
+- **AI must earn its place** — if it adds nothing, do not force it into the system.
 
 ## Project status
 
-**Early alpha.** The integration and causal core are usable research primitives, while model adapters and end-to-end examples are still expanding.
-
-The objective is not to ship a universal trading bot. It is to provide a clean way to **add, test and reject AI components around an existing market system without corrupting causality or forcing the original strategy to be rewritten**.
+**Early alpha.** The causal core, deterministic combiner and existing-bot integration pieces are usable research building blocks. More public data connectors, model adapters and complete end-to-end examples are still being added.
 
 ## Documentation
 
-- [Integrating an existing bot or EA](docs/INTEGRATING_EXISTING_BOTS.md)
-- [Failure modes and lessons learned](docs/LESSONS_LEARNED.md)
+Start with these three pages:
+
+1. [Multi-signal and deterministic model](docs/MULTI_SIGNAL_AND_DETERMINISTIC_MODEL.md)
+2. [Integrating an existing bot or EA](docs/INTEGRATING_EXISTING_BOTS.md)
+3. [Failure modes and lessons learned](docs/LESSONS_LEARNED.md)
+
+More technical material:
+
 - [Project status and research evidence](docs/PROJECT_STATUS.md)
-- [Historical data sources and preparation](docs/DATA_SOURCES.md)
-- [Model adapter architecture](docs/MODEL_ADAPTERS.md)
+- [Historical data sources](docs/DATA_SOURCES.md)
+- [Model adapters](docs/MODEL_ADAPTERS.md)
 - [Fine-tuning guide](docs/FINETUNING_GUIDE.md)
 - [Architecture](docs/ARCHITECTURE.md)
-- [Trading-system research patterns](docs/TRADING_SYSTEM_PATTERNS.md)
+- [Example trading-system patterns](docs/TRADING_SYSTEM_PATTERNS.md)
 - [Reference research environment](docs/RESEARCH_ENVIRONMENT.md)
-- [Benchmarking guide](docs/BENCHMARKING.md)
+- [Benchmarking](docs/BENCHMARKING.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Repository governance](docs/REPOSITORY_GOVERNANCE.md)
 - [Contributing](CONTRIBUTING.md)
 
 ## Disclaimer
 
-This software is provided for research and educational purposes. Financial markets involve risk. Nothing in this repository constitutes investment advice, a recommendation to trade, or a guarantee of future performance.
+This software is for research and education. Financial markets involve risk. Nothing in this repository is investment advice or a guarantee of future results.
 
 ## License
 
-Code in this repository is licensed under the Apache License 2.0. Datasets, model weights and third-party models may be governed by separate licenses.
+Code in this repository is licensed under the Apache License 2.0. Datasets, model weights and third-party models may have separate licenses.
