@@ -2,6 +2,7 @@
 
 from .audit import CausalityError, assert_causal_alignment, audit_causal_features
 from .cache import CacheIntegrityError, ResumableChunkCache, atomic_write_bytes
+from .deterministic import DeterministicModelError, combine_directional_signals
 from .integration import IntegrationError, attach_causal_market_context, validate_bot_events
 from .metrics import evaluate_r_multiples
 from .provenance import (
@@ -27,6 +28,7 @@ __all__ = [
     "ArtifactSealError",
     "CacheIntegrityError",
     "CausalityError",
+    "DeterministicModelError",
     "IntegrationError",
     "MarketState",
     "RecordIDMismatchError",
@@ -39,6 +41,7 @@ __all__ = [
     "atomic_write_bytes",
     "attach_causal_market_context",
     "audit_causal_features",
+    "combine_directional_signals",
     "compare_record_ids",
     "dependency_fingerprint",
     "evaluate_r_multiples",

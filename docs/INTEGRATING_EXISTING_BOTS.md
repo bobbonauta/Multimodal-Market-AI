@@ -1,33 +1,43 @@
-# Integrating an existing bot or EA
+# Connect an existing bot or EA — simple guide
 
-Multimodal Market AI is designed to sit **beside** an existing trading system. You do not need to rewrite a large EA or Python bot, and you do not need to publish the rules that make that system proprietary.
+This page is for people who already have a trading bot, EA or backtester.
 
-The integration boundary is deliberately small:
+The main idea is simple:
+
+> **Do not rewrite your bot. Let it keep doing its job. Send only the information needed for research to this framework.**
+
+## 1. The small bridge between your bot and this project
+
+Think of your bot and this project as two separate boxes.
 
 ```text
-existing system
-   -> timestamped event / candidate / state
-   -> causal context adapter
-   -> audited dataset
-   -> baseline and/or multimodal model
-   -> score / context / estimate
-   -> research, read-only monitoring, or optional feedback to the existing system
+YOUR BOT
+   |
+   | sends a small event
+   v
+THIS PROJECT
+   |
+   | checks time and data
+   | adds market context
+   | can run simple models or AI
+   v
+RESULT FILE / SCORE / REPORT
 ```
 
-## 1. What the existing system should export
+At first, the result should be **read-only**. It should not place trades.
 
-At minimum, export one row for each event you want the AI layer to study:
+## 2. What should the bot send?
 
-| field | purpose |
+At minimum, one row should contain:
+
+| field | simple meaning |
 |---|---|
-| `event_id` | stable unique identity |
-| `decision_ts` | exact timestamp at which the event existed |
-| `symbol` | instrument identifier |
-| strategy-owned state/features | only values already known at `decision_ts` |
+| `event_id` | a unique name for this event |
+| `decision_ts` | the exact time when the bot made the decision |
+| `symbol` | the market or instrument |
+| your own values | information your bot already knew at that time |
 
-Optional fields can include the system's own candidate type, confidence, indicator values, regime labels or any private numerical state. The framework does not need to understand how those values were produced.
-
-A generic CSV can therefore look like:
+Example:
 
 ```csv
 event_id,decision_ts,symbol,system_score,state_a,state_b
@@ -35,11 +45,13 @@ x001,2026-01-01T10:07:00Z,SYNTH,0.62,1.4,-0.2
 x002,2026-01-01T10:10:00Z,SYNTH,0.47,1.1,0.3
 ```
 
-Do **not** export account credentials, API keys or information that is not required by the experiment.
+You do **not** need to explain how `system_score`, `state_a` or `state_b` were calculated. They can stay private.
 
-## 2. Python bots
+Do not export passwords, API keys or account secrets.
 
-A Python bot can pass a `pandas.DataFrame` directly to `attach_causal_market_context`.
+## 3. If your bot is written in Python
+
+Python bots can pass a table directly to the integration helper.
 
 ```python
 from multimodal_market_ai.integration import attach_causal_market_context
@@ -47,38 +59,51 @@ from multimodal_market_ai.integration import attach_causal_market_context
 joined = attach_causal_market_context(bot_events, closed_bars)
 ```
 
-The adapter preserves the original event fields and attaches only market bars that were closed by the event timestamp.
+What happens?
 
-Use one instrument per call. Multi-instrument systems can group events by symbol and process each symbol against its own market series.
+1. The function checks that every event has a unique ID.
+2. It checks the event time.
+3. It finds the latest market bar that was already closed.
+4. It adds that bar to the event.
+5. It refuses to use a future bar.
 
-## 3. MT4 / MT5 EAs
+Your private columns are kept unchanged.
 
-An EA does not need Python embedded inside the trading logic. A low-coupling bridge is safer during research.
+## 4. If your bot is an MT4 or MT5 EA
 
-Recommended progression:
+The EA does not need Python inside it.
 
-```text
-EA
- -> append CSV / JSON / SQLite event journal
- -> Python watcher or scheduled importer
- -> causal context + model
- -> separate output file / database table
-```
-
-For MetaTrader, the EA can append one compact row only when something meaningful happens. A generic row might contain:
+The easiest research bridge is usually a small file or database.
 
 ```text
-event_id,timestamp_utc,symbol,event_type,state_1,state_2,...
+MT4 / MT5 EA
+    |
+    | writes one row when something important happens
+    v
+CSV / JSON / SQLite
+    |
+    v
+Python research process
+    |
+    v
+model result / report
 ```
 
-The Python side can then:
+A generic EA row could look like:
 
-1. normalize timestamps to UTC;
-2. verify unique event IDs;
-3. attach only closed market context;
-4. add numerical or visual representations;
-5. run a model;
-6. write a separate result such as:
+```text
+event_id,timestamp_utc,symbol,event_type,state_1,state_2
+```
+
+Then Python can:
+
+1. read the row;
+2. check that the time is valid;
+3. add only market data that already existed;
+4. run a deterministic model, numerical model or AI model;
+5. write a result somewhere else.
+
+Example result:
 
 ```json
 {
@@ -89,94 +114,124 @@ The Python side can then:
 }
 ```
 
-The names above are examples, not required model outputs.
+These names are only examples.
 
-During development, keep the result **read-only**: log it, compare it with subsequent outcomes, and do not let it place or modify orders.
+## 5. Start with old data before live data
 
-## 4. Historical integration first
+Do not start by connecting AI to live trading.
 
-Before live use, export historical decisions from the existing system and reconstruct the information that was actually available at each decision time.
-
-Recommended sequence:
+A safer order is:
 
 ```text
-historical events
- -> exact IDs + timestamps
- -> causal context attachment
- -> leakage audit
- -> labels/outcomes created separately
- -> purged temporal split
- -> naive baseline
- -> tabular baseline
- -> optional multimodal representation
- -> incremental-value comparison
+old bot events
+ -> check IDs and times
+ -> add causal market context
+ -> check for future-information mistakes
+ -> create outcomes later
+ -> split data by time
+ -> simple deterministic baseline
+ -> simple numerical baseline
+ -> optional AI
+ -> read-only live test
 ```
 
-The same event population and split should be used when comparing models. Otherwise a better score may simply come from evaluating different rows.
+This lets you find mistakes when nothing can affect real orders.
 
-## 5. Keep the strategy and the AI layer separate
+## 6. Keep the two worlds separate
 
-A useful boundary is:
+### Your bot owns
 
-**Strategy-owned**
-- candidate creation;
-- private rules;
-- proprietary indicators/state;
-- execution logic;
-- account and broker configuration.
+- its private strategy;
+- its indicators;
+- its candidate rules;
+- its execution logic;
+- broker and account settings.
 
-**Framework-owned**
-- timestamp validation;
-- causal market alignment;
-- dataset identity/provenance;
-- train/validation/test discipline;
-- feature availability checks;
+### This framework can own
+
+- timestamp checks;
+- market-data alignment;
+- dataset IDs and hashes;
+- train/validation/test separation;
+- leakage checks;
+- deterministic signal combination;
 - model comparison;
-- resumable inference/cache;
-- reproducible evaluation.
+- cache/resume tools;
+- read-only live validation.
 
-This separation allows an open integration layer without publishing the strategy.
+This separation is useful because you can improve the research layer without touching the code that already works inside your bot.
 
-## 6. Possible AI roles
+## 7. You can also rebuild part of the bot as a public deterministic model
 
-The framework does not force a single use case. An existing system can use a learned layer for research into:
+Maybe your old bot has a very large signal section and you want to test a cleaner version.
 
-- candidate ranking;
-- quality or uncertainty scoring;
-- market-context classification;
-- anomaly detection;
-- visual pattern representation;
-- risk/deterioration estimation;
-- post-decision continuation modelling;
-- identifying cases where a deterministic system behaves differently across regimes.
+You can export or recalculate a few simple signals:
 
-A model should earn its place. Compare it against simple baselines and keep it out if it adds no useful information.
+```text
+signal A
+signal B
+signal C
+```
 
-## 7. Read-only forward validation
+Then combine them with the public deterministic helper.
 
-After offline validation, connect the adapter to the live data flow but keep execution disabled.
+Example:
 
-Verify:
+```python
+from multimodal_market_ai.deterministic import combine_directional_signals
 
-- timestamps and session boundaries;
-- restart behavior and duplicate handling;
-- data revisions;
-- exact correspondence between observed events and model outputs;
-- latency;
-- whether model behavior remains consistent with offline evaluation.
+result = combine_directional_signals(
+    data,
+    ["signal_a", "signal_b", "signal_c"],
+    policy="majority",
+)
+```
 
-Only after this stage should a project separately decide whether any model output may influence execution.
+Now you have a small public model that can be changed one rule at a time.
 
-## 8. What not to do
+Read: [Multi-signal and deterministic model](MULTI_SIGNAL_AND_DETERMINISTIC_MODEL.md).
+
+## 8. What can AI do after the bot is connected?
+
+AI does not need to replace the bot.
+
+It can be tested as:
+
+- a candidate ranker;
+- a quality score;
+- a market-context reader;
+- an anomaly detector;
+- a visual chart reader;
+- a risk or uncertainty estimate;
+- a continuation/deterioration estimate after an event already exists.
+
+If the AI adds nothing useful, leave it out.
+
+## 9. What is a read-only live test?
+
+The model watches real incoming data and writes its answer, but cannot place an order.
+
+Check:
+
+- Does every event arrive once?
+- Are timestamps correct?
+- What happens after a restart?
+- Does the data provider change old bars?
+- Is the model too slow?
+- Does live behavior look like the historical test?
+
+Only after this stage should execution integration even be discussed.
+
+## 10. Common mistakes to avoid
 
 Do not:
 
-- let a historical label leak into the exported state;
-- join on approximate row position when stable IDs exist;
-- regenerate validation/test preprocessing statistics separately;
-- silently drop unmatched events with an inner join;
-- reuse a cache only because the file exists;
-- tune repeatedly against the final holdout;
-- assume an AI model must improve a mature deterministic system.
+- use future information in a feature;
+- join rows only because they are in the same position;
+- silently throw away unmatched events;
+- calculate preprocessing again on validation/test data;
+- reuse an old cache only because the file exists;
+- keep looking at the final test set while changing the model;
+- assume that AI must improve a mature bot.
 
-See [Failure modes and lessons learned](LESSONS_LEARNED.md) for the reasoning behind these rules.
+More examples: [Failure modes and lessons learned](LESSONS_LEARNED.md).

@@ -1,232 +1,255 @@
-# Example market-system research patterns
+# Example trading-system patterns — simple explanations
 
-Multimodal Market AI is strategy-agnostic. It does not ship a proprietary trading method or claim that one particular setup is profitable.
+This project does not give you one secret strategy.
 
-What it can provide is a common research stack for building, comparing and auditing different kinds of market systems. This page gives several **generic patterns** that contributors can implement with public data or their own rules.
+Instead, it gives you tools that can be used with many different systems.
 
-The examples below are research templates, not trading recommendations.
+The examples below are **ideas for research**, not trading advice.
 
-## 1. Multi-timeframe trend + pullback system
+## 1. Multi-timeframe trend + pullback
 
-A classic structure is:
-
-```text
-higher timeframe
-    -> define trend / regime
-middle timeframe
-    -> confirm structure
-lower timeframe
-    -> time the entry
-```
-
-Example research logic:
-
-- higher timeframe: a public trend or regime definition;
-- middle timeframe: a structural or directional confirmation;
-- lower timeframe: a public timing rule such as pullback/re-acceleration;
-- stop: structural invalidation or a volatility-normalized distance;
-- exit: fixed R target, trailing structure, or a staged exit policy.
-
-This family is easy to implement and gives a good baseline for testing causal multi-timeframe alignment.
-
-### Why it can adapt slowly
-
-Many traditional multi-timeframe systems use several smoothed signals at once. Smoothing and confirmation windows can reduce noise, but they can also react slowly after a regime change.
-
-That makes this family useful as a **slow-adapting baseline** when testing whether a learned visual/numerical state representation reacts earlier without becoming unstable.
-
-## 2. Multi-signal confirmation system
-
-A second generic pattern combines several independently computed observations, for example:
-
-- current price/candle direction;
-- one or more momentum measurements;
-- a trend or slope estimate;
-- volatility context;
-- distance from a recent public structural reference.
-
-A deterministic version can define an explicit confirmation policy. A learned version can instead estimate whether temporary disagreement between inputs carries useful information.
-
-The exact indicators, thresholds and confirmation semantics are intentionally left to the user. The public framework focuses on causal synchronization, feature availability and fair comparison between deterministic and learned alternatives.
-
-## 3. Breakout + retest system
+Idea:
 
 ```text
-range / compression
-      -> breakout
-      -> retest
-      -> continuation or failure
+slower view  -> what is the big direction?
+middle view  -> is the structure still compatible?
+faster view  -> is this a good moment to act?
 ```
 
-Research questions:
+A public example could use:
 
-- Can a deterministic layer define the range and breakout exactly?
-- Can a visual model distinguish clean retests from noisy false breaks?
-- Does the same logic transfer across Forex, indices and commodities?
-- Is a visual model useful only near events, allowing a cheap event gate to skip most bars?
+- a slow trend measure;
+- a middle structural rule;
+- a faster timing rule.
 
-This pattern is especially suitable for event-gated VLM research.
+The exact indicators are replaceable.
 
-## 4. Mean-reversion system
+Why use this pattern?
 
-Possible ingredients:
+Because it teaches how to combine several time scales without accidentally using a bar that was not closed yet.
 
-- distance from a rolling mean or VWAP-like reference;
-- z-score / normalized deviation;
-- volatility regime;
-- higher-timeframe direction as a veto;
-- re-entry into a statistical band.
+## 2. Multi-signal confirmation
 
-A useful experiment is to compare:
-
-1. pure numerical features;
-2. numerical features + chart image;
-3. a typed state that combines both.
-
-Mean-reversion systems are a good reminder that the same visual shape can mean different things in different volatility regimes.
-
-## 5. Relative-strength / cross-market system
-
-Instead of looking at one chart in isolation, construct a relative-strength state from a basket of related instruments.
-
-Examples:
-
-- currency-strength models built from many FX crosses;
-- sector-relative equity strength;
-- commodity spread relationships;
-- index-relative momentum;
-- cross-asset risk-on / risk-off context.
-
-The numerical layer should calculate exact cross-market quantities. A multimodal layer can then focus on context rather than trying to reproduce arithmetic from pixels.
-
-## 6. Regime-switching system
-
-A single strategy often behaves very differently in:
-
-- trend;
-- range;
-- high volatility;
-- low volatility;
-- transition periods.
-
-A regime system first estimates a state, then changes the downstream rule or model.
-
-```text
-market data
-   -> regime/state model
-       -> trend policy
-       -> range policy
-       -> transition / wait policy
-```
-
-Possible regime detectors include:
-
-- deterministic volatility/trend statistics;
-- HMMs or clustering;
-- tree models;
-- sequence models;
-- visual/multimodal readers.
-
-This is one of the clearest uses for a typed intermediate `MarketState`.
-
-## 7. Event-gated multimodal system
-
-Running a vision-language model on every bar is often wasteful.
-
-A more practical architecture is:
-
-```text
-all bars
-   -> cheap deterministic scanner
-        -> nothing interesting: skip
-        -> candidate / ambiguity: render chart
-                                 -> multimodal model
-                                 -> structured state
-                                 -> decision layer
-```
-
-The scanner should optimize for **high recall**, not for being the final trading model. It is a radar, not the trader.
-
-This pattern can make expensive multimodal inference practical over long histories.
-
-## 8. Asymmetric payoff system
-
-A system does not need a high win rate to have positive expectancy.
-
-If average losses are `-1R` and average wins are larger, even a win rate below 50% can be economically useful.
+A multi-signal system uses several small clues.
 
 Example:
 
 ```text
-49 winners at +2R = +98R
-51 losers  at -1R = -51R
-------------------------
-net                 +47R
-profit factor       98 / 51 = 1.92
-expectancy          +0.47R per trade
+signal A = trend clue
+signal B = momentum clue
+signal C = structure clue
 ```
 
-Therefore:
-
-- do not optimize only for classification accuracy;
-- do not treat every losing trade as a model error;
-- report the whole R-multiple distribution;
-- inspect the positive tail (`+2R`, `+3R`, `+4R`, ...);
-- report expectancy, profit factor and drawdown alongside win rate.
-
-This is a core design principle of the evaluation module.
-
-## 9. Learned state + lightweight decision head
-
-A powerful general pattern is to separate perception from decision-making:
+Each signal can say:
 
 ```text
-raw data / charts
-       -> numerical + visual encoders
-       -> typed MarketState
-       -> small decision model
++1 = points one way
+-1 = points the other way
+ 0 = no opinion from this rule
 ```
 
-The decision head can be deliberately simple:
+Then a deterministic model can combine them.
 
-- logistic regression;
-- gradient boosting;
-- a small MLP;
-- a small sequence model;
-- a compact language model consuming typed state.
+### Majority example
 
-Benefits:
+```text
+A = +1
+B = +1
+C = -1
 
-- cheaper retraining;
-- easier comparison between visual backends;
-- better auditability;
-- easier caching;
-- easier deployment on ordinary hardware.
+final answer = +1
+```
 
-## 10. How to compare systems fairly
+### Unanimous example
 
-For any strategy family, keep the comparison protocol fixed:
+```text
+A = +1
+B = +1
+C = -1
 
-1. define timestamp semantics;
-2. freeze train/validation/test periods;
-3. forbid future/post information in inputs;
-4. use the same transaction-cost assumptions;
-5. report both predictive and economic metrics;
-6. preserve outputs so a new economic policy can be evaluated without retraining the model;
-7. compare against simple deterministic and statistical baselines.
+final answer = 0 because they do not all agree
+```
 
-A complex AI model is useful only if it adds something measurable beyond a simpler alternative.
+### Weighted example
 
-## Suggested first community experiments
+Maybe signal A has proved more reliable in your research.
 
-Good starter contributions would be:
+You can give it more weight:
 
-- implement one deterministic baseline from this page;
-- add a public-data example for Forex, equities or crypto;
-- connect an existing EA/Python bot through the public integration adapter;
-- compare CPU-only vs GPU models on the same state representation;
-- test whether visual context improves a numerical baseline;
-- benchmark event gating and cache hit rates;
-- submit a different exit/R policy while reusing frozen model outputs.
+```text
+A weight = 0.6
+B weight = 0.3
+C weight = 0.1
+```
 
-The project welcomes systems that are very different from one another. The goal is to make the **research infrastructure reusable**, not to force every contributor into one trading philosophy.
+The important idea is not the exact rule. The important idea is that **every signal can be replaced and recalculated without rebuilding the whole project**.
+
+Read the full simple guide: [Multi-signal and deterministic model](MULTI_SIGNAL_AND_DETERMINISTIC_MODEL.md).
+
+## 3. Breakout + retest
+
+Idea:
+
+```text
+price stays in an area
+ -> leaves the area
+ -> comes back to test it
+ -> continues or fails
+```
+
+Possible research questions:
+
+- Can simple rules find the range?
+- Can a visual model tell a clean retest from a messy one?
+- Does visual AI add anything beyond numerical rules?
+
+## 4. Mean reversion
+
+Idea:
+
+> Price moves far away from a normal reference, then may move back toward it.
+
+Possible clues:
+
+- distance from a recent average;
+- volatility;
+- whether the larger market direction supports or fights the return.
+
+You can compare:
+
+```text
+numbers only
+vs
+numbers + chart image
+```
+
+## 5. Relative strength
+
+Instead of looking at one market alone, compare several related markets.
+
+Examples:
+
+- one currency against several others;
+- one stock sector against another;
+- one index against another;
+- related commodities.
+
+The numerical layer should do the arithmetic. AI can then focus on context instead of trying to read exact maths from pixels.
+
+## 6. Regime switching
+
+Markets do not always behave the same way.
+
+A simple system may first ask:
+
+```text
+Is the market trending?
+Is it moving sideways?
+Is volatility high?
+Is volatility low?
+```
+
+Then it can choose a different rule for each situation.
+
+```text
+market data
+ -> regime estimate
+      -> trend rules
+      -> range rules
+      -> wait / uncertain rules
+```
+
+## 7. Event-gated visual AI
+
+Running a large visual model on every bar can be wasteful.
+
+A cheaper design is:
+
+```text
+all bars
+ -> cheap deterministic scanner
+      -> boring case: skip
+      -> interesting case: ask visual AI
+```
+
+Think of the cheap scanner as a radar. It finds moments worth examining more closely.
+
+## 8. Deterministic model first, AI second
+
+This is one of the most important patterns in the repository.
+
+Start with rules you can read:
+
+```text
+market data
+ -> signal A
+ -> signal B
+ -> signal C
+ -> deterministic final answer
+```
+
+Then test whether AI can add something:
+
+```text
+deterministic answer
+ + extra market context
+ + optional image
+ -> AI / statistical model
+```
+
+If the AI does not improve the result fairly, keep the simpler model.
+
+## 9. AI as another signal
+
+AI does not have to own the whole decision.
+
+It can simply produce one more clue:
+
+```text
+trend signal
+momentum signal
+structure signal
+AI signal
+      |
+      v
+deterministic combiner
+```
+
+This keeps the final system easier to inspect.
+
+## 10. Post-decision / management model
+
+AI can also be studied **after** an event already exists.
+
+Example research question:
+
+> Given everything known now, does the situation look like it is improving, deteriorating or becoming uncertain?
+
+This is different from asking the AI to create the original entry.
+
+## 11. How to compare two systems fairly
+
+If you change one rule, keep the test fair.
+
+Use:
+
+- the same historical period;
+- the same rows;
+- the same train/validation/test split;
+- the same costs;
+- the same evaluation method.
+
+Otherwise you may compare two different problems without noticing.
+
+## 12. Good first experiments
+
+Simple community projects include:
+
+- create three public signals and combine them with majority voting;
+- replace one signal and measure what changes;
+- connect an existing EA through the integration adapter;
+- compare a deterministic model with a simple numerical model;
+- add a chart image only after the numerical baseline exists;
+- run the same model in read-only live mode.
+
+The goal is not to force everyone to use the same trading idea. The goal is to make **building, replacing and testing each piece easy and auditable**.

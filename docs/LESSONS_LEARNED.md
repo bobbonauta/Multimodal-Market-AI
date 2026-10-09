@@ -1,210 +1,213 @@
-# Failure modes and lessons learned
+# Mistakes we learned from — simple version
 
-This document records general failure modes encountered during internal market-AI research. The private strategy and private datasets are intentionally omitted. The goal is to preserve the engineering lessons so other users do not need to repeat the same mistakes.
+This page records mistakes found during internal research.
 
-## 1. Do not confuse persistent state with transient confirmation
+The private strategy is not shown here. Only the lesson is shared.
 
-A variable that describes an ongoing state is not the same thing as a flag that says whether the current observation confirms that state.
+The goal is simple: **other people should not have to lose time repeating the same mistakes.**
 
-**Failure mode:** a temporary lack of confirmation is encoded as a new state/class.
+## 1. Do not mix a long-lived state with a short-lived confirmation
 
-**Consequence:** target definitions change meaning, trained models optimize the wrong task, and downstream metrics become invalid.
+**Mistake:** treating “the current bar does not confirm the state” as if the whole state changed.
 
-**Prevention:** version the target/state contract and keep persistent state, current confirmation and unavailable/unknown status in separate fields.
+**Why it is bad:** the target changes meaning and the model may learn the wrong problem.
 
-## 2. Missing is not neutral
+**What to do:** store long-lived state and current confirmation as separate fields.
 
-Unavailable data, not-yet-initialized state, disagreement and a legitimate neutral state are different concepts.
+## 2. Missing data is not the same as a real neutral answer
 
-**Failure mode:** all of them are represented by the same value.
+**Mistake:** using one value for “missing”, “not ready yet”, “disagreement” and “real neutral”.
 
-**Consequence:** state machines acquire impossible transitions and models learn artifacts of data availability.
+**Why it is bad:** the model cannot tell what really happened.
 
-**Prevention:** make missing/unknown explicit and reject illegal enum values instead of coercing them silently.
+**What to do:** give missing/unknown information its own clear meaning.
 
-## 3. Compare semantic roles, not similar column names
+## 3. Similar column names can still mean different things
 
-The same-looking field name can mean different things in different configurations.
+**Mistake:** comparing two columns only because their names look similar.
 
-**Failure mode:** two series are compared because their names appear analogous even though their roles differ.
+**Why it is bad:** you may see a huge disagreement that is not real.
 
-**Consequence:** a large apparent disagreement may be entirely artificial.
+**What to do:** first check what each column actually means and what role it plays.
 
-**Prevention:** attach explicit semantic roles/schema metadata and validate role compatibility before comparing values. If roles differ, require an explicit mapping.
+## 4. Required files must really be checked
 
-## 4. Fail closed on required inputs
+**Mistake:** a needed input file is missing, but the program quietly skips it.
 
-A manifest is useful only if it proves the files actually consumed by the computation.
+**Why it is bad:** the result may depend on something that was never recorded correctly.
 
-**Failure mode:** code skips a missing manifest entry with `continue` or treats every missing file as optional.
+**What to do:** mark inputs as required or optional. Missing required input = stop.
 
-**Consequence:** an output may look reproducible while depending on an untracked input.
+## 5. A file existing does not mean the job finished correctly
 
-**Prevention:** classify inputs as required or optional. Missing required input or hash mismatch must stop the pipeline.
+**Mistake:** a long job stops halfway, but the output file exists, so the next run trusts it.
 
-## 5. File existence is not proof of completion
+**Why it is bad:** half-finished data can enter the experiment.
 
-Long jobs are interrupted.
+**What to do:** save completion information, hashes and exact record IDs. Reuse only if all checks pass.
 
-**Failure mode:** resume logic sees an output file and assumes the chunk is complete.
+## 6. If an input changes, old cached output may be wrong
 
-**Consequence:** partial or stale artifacts silently enter later stages.
+**Mistake:** changing source data, model version or preprocessing but keeping the old cache.
 
-**Prevention:** use atomic writes plus completion metadata, artifact hash, dependency fingerprint and exact expected record IDs. Reuse only when all checks pass.
+**Why it is bad:** the output may belong to an older experiment.
 
-## 6. Dependency changes must invalidate cached artifacts
+**What to do:** fingerprint the important inputs and invalidate the cache when any of them changes.
 
-Model revision, renderer, prompt, preprocessing, source data and code can all change an output.
+## 7. Do not let joins silently throw rows away
 
-**Failure mode:** only the output file hash is checked.
+**Mistake:** joining two tables and accepting that some rows disappear.
 
-**Consequence:** an old cache is reused under a new experiment definition.
+**Why it is bad:** missing records can hide instead of causing an error.
 
-**Prevention:** fingerprint every material dependency and invalidate automatically when any dependency is added, removed or changed.
+**What to do:** compare exact ID sets first, then join one-to-one.
 
-## 7. Do not use silent inner joins as validation
+## 8. A target can cross a time split
 
-**Failure mode:** two datasets are merged with an inner join and the reduced row count is accepted.
+**Mistake:** putting a row in training because the decision happened before the cutoff, even though the future outcome used for its label finishes after the cutoff.
 
-**Consequence:** missing or extra records disappear instead of causing an error.
+**Why it is bad:** training can contain information from validation time.
 
-**Prevention:** compare exact ID sets first, reject duplicates, missing and extra IDs, then use a validated one-to-one join.
-
-## 8. Split by the full outcome lifecycle, not only decision time
-
-A row may be created before a train/validation boundary while its target depends on data after that boundary.
-
-**Failure mode:** the split uses only `decision_ts`.
-
-**Consequence:** training labels contain validation-period information.
-
-**Prevention:** track `outcome_end_ts` (or equivalent) and purge training rows whose label path crosses the cutoff.
+**What to do:** track when the full outcome ends and remove rows that cross the boundary.
 
 ## 9. Fit preprocessing on training data only
 
-**Failure mode:** normalization/PCA/statistics are fitted on the full dataset or refitted separately on validation.
+**Mistake:** calculating normalization or other statistics using validation/test data too.
 
-**Consequence:** information about the validation/test distribution leaks into training or comparisons become inconsistent.
+**Why it is bad:** the training process learns something about the future test distribution.
 
-**Prevention:** fit preprocessing once on training and apply it unchanged elsewhere. A useful test mutates validation values and verifies that training statistics remain identical.
+**What to do:** fit preprocessing once on training and reuse it unchanged.
 
-## 10. Feature availability needs its own timestamp
+## 10. Every feature has a time when it becomes available
 
-A row timestamp does not prove every feature was known at that time.
+**Mistake:** assuming that because a row is stamped `10:00`, every value inside it was already known at `10:00`.
 
-**Failure mode:** a feature derived later is attached to an earlier decision row.
+**Why it is bad:** some features may actually use later information.
 
-**Consequence:** future information enters the model even though the main dataframe looks time-sorted.
+**What to do:** record or calculate `available_at` and require:
 
-**Prevention:** for causality-sensitive features, record or derive `available_at` and enforce `available_at <= decision_ts`.
+```text
+available_at <= decision_time
+```
 
-## 11. Retrospective audit labels must not become model inputs
+## 11. Future-only audit information must not become a model input
 
-Some useful diagnostic categories can only be determined after observing the future.
+**Mistake:** creating a useful label after seeing the future, then accidentally feeding it back into the model.
 
-**Failure mode:** an audit-only class migrates into a feature because it is convenient or predictive.
+**Why it is bad:** this is direct leakage.
 
-**Consequence:** severe target leakage.
+**What to do:** mark future-derived fields as audit-only and block them from model inputs.
 
-**Prevention:** mark retrospective fields explicitly as `audit_only`/future-derived and keep them outside feature allowlists.
+## 12. Documentation must match what the code really does
 
-## 12. Document the filter the code actually executes
+**Mistake:** the document says the system uses three filters, while the code actually uses only one.
 
-**Failure mode:** documentation describes a conceptual multi-stage gate while production code applies only one of those stages; marginal diagnostics are mistaken for cumulative filters.
+**Why it is bad:** people think they are testing a different system.
 
-**Consequence:** researchers believe they are evaluating a different candidate population from the one actually used.
+**What to do:** keep the written rules and executed rules synchronized.
 
-**Prevention:** generate/report executed gate logic from code/config where practical and distinguish descriptive diagnostics from filtering operations.
+## 13. Protect the final test set
 
-## 13. Protect the final holdout
+**Mistake:** looking at the final test period again and again while changing the model.
 
-**Failure mode:** the test period is repeatedly opened to choose thresholds, features or models.
+**Why it is bad:** the test slowly becomes another validation set.
 
-**Consequence:** the test set becomes another validation set.
+**What to do:** make choices on train/validation first. Open the final holdout only when the experiment is frozen.
 
-**Prevention:** freeze choices on training/validation, record the policy/config hash, then open the protected holdout only for the declared evaluation.
+## 14. Cheap tests come before expensive GPU jobs
 
-## 14. Run cheap baselines before expensive GPU work
+**Mistake:** starting a large multimodal run before checking the data and simple baseline.
 
-**Failure mode:** a large multimodal run starts before proving that the dataset, split and simple baseline are correct.
+**Why it is bad:** expensive compute may be testing a broken pipeline.
 
-**Consequence:** expensive compute measures a broken pipeline or a problem already solved by simpler features.
+**What to do:** use this order:
 
-**Prevention:** naive baseline -> tabular baseline -> tiny dry run -> interruption/resume test -> dependency-invalidation test -> full expensive run.
+```text
+simple baseline
+ -> small dry run
+ -> resume test
+ -> cache invalidation test
+ -> only then full expensive run
+```
 
-## 15. Multimodal features must prove incremental value
+## 15. A visual model must add value, not just look impressive
 
-A vision-language model can contain signal and still add nothing useful once a strong numerical baseline is present.
+**Mistake:** continuing VLM/fine-tuning work because the visual model has some signal.
 
-**Failure mode:** multimodal fine-tuning continues simply because the representation looks sophisticated.
+**Why it is bad:** a simple numerical model may already contain the same useful information.
 
-**Consequence:** more cost and complexity without measurable gain.
+**What to do:** compare both models on the same rows and ask whether the visual model adds something extra.
 
-**Prevention:** evaluate the multimodal representation alone and combined with the numerical baseline on the exact same rows/split. Stop when incremental value is not demonstrated.
+## 16. Better prediction does not automatically mean better trading
 
-## 16. Predictive improvement is not economic edge
+**Mistake:** saying “the model score improved, so the strategy is profitable”.
 
-**Failure mode:** better AUC/correlation/error is presented as proof of a profitable trading system.
+**Why it is bad:** prediction quality and economic result are different questions.
 
-**Consequence:** statistical signal and economic usefulness are conflated.
+**What to do:** report predictive metrics and economic evaluation separately.
 
-**Prevention:** keep predictive metrics and strategy-specific economic evaluation separate, including costs and robustness checks where appropriate.
+## 17. If event order is unknown, keep it unknown
 
-## 17. Ambiguous event order should remain ambiguous
+**Mistake:** one OHLC bar touches two important levels and the code guesses which happened first.
 
-OHLC bars often cannot tell which of two intrabar events happened first.
+**Why it is bad:** the label contains invented precision.
 
-**Failure mode:** code invents an order and converts ambiguity into a deterministic target.
+**What to do:** mark the order as unknown unless finer data proves it.
 
-**Consequence:** labels contain fake precision.
+## 18. Timeframe aggregation depends on real market sessions
 
-**Prevention:** mark same-bar order as unknown/censored unless higher-resolution data proves the sequence.
+**Mistake:** building higher timeframes only with simple UTC buckets while ignoring provider sessions, holidays, pauses or daylight-saving changes.
 
-## 18. Historical aggregation needs real session semantics
+**Why it is bad:** your derived bars may not match what the real system saw.
 
-**Failure mode:** higher timeframes are built only as fixed UTC buckets without checking provider session anchors, pauses, holidays or DST.
+**What to do:** document the provider/session rules. If you do not know them, say the aggregation is not certified.
 
-**Consequence:** derived bars may not match the bars that were actually visible to the original system/provider.
+## 19. Synthetic tests are useful, but they are not live proof
 
-**Prevention:** document timestamp semantics and session anchors. If the authoritative rule is unknown, mark the derived series as not certified rather than guessing.
+**Mistake:** a fake restart/DST test passes, so we claim the live provider is proven safe.
 
-## 19. Synthetic tests are necessary but not live certification
+**Why it is bad:** a real feed can behave differently.
 
-**Failure mode:** a synthetic DST/restart/history-revision test passes and is treated as proof that a live feed behaves the same way.
+**What to do:** separate:
 
-**Consequence:** engineering tests are overclaimed as provider evidence.
+```text
+synthetic test
+historical reproduction
+live read-only validation
+```
 
-**Prevention:** distinguish synthetic correctness, historical reproduction and live/read-only validation.
+## 20. Sampling rules can change the result
 
-## 20. Sampling choices are part of the experiment
+**Mistake:** many possible events exist, but one is selected without documenting how.
 
-**Failure mode:** multiple candidates from one event/group are reduced to one row without documenting the rule.
+**Why it is bad:** performance may depend on that hidden choice.
 
-**Consequence:** reported performance may depend on an arbitrary sampling convention.
+**What to do:** record the sampling rule and test alternatives.
 
-**Prevention:** record the sampling unit, grouping key and weighting rule; test alternatives before treating results as general.
+## 21. A wrong idea that gets disproved is still useful
 
-## 21. A failed hypothesis is useful evidence
+**Mistake:** hiding failed hypotheses and keeping only successful ones.
 
-Several important improvements came from discovering that an assumption was wrong rather than from confirming it.
+**Why it is bad:** the same wrong path may be repeated later.
 
-**Prevention against wasted work:** preserve rejected hypotheses, the test that falsified them and the corrected interpretation. Do not rewrite history so that only successful experiments remain visible.
+**What to do:** record what was believed, how it was tested, and what the test proved instead.
 
-## Recommended preflight checklist
+## Before a long experiment: simple checklist
 
-Before a long experiment:
+Before spending a lot of time or GPU money, check:
 
-- freeze the candidate/record universe;
-- verify exact IDs and source hashes;
-- verify the target/state contract version;
-- verify feature availability;
-- verify the purged temporal split;
-- fit preprocessing on training only;
-- run naive and tabular baselines;
-- run a small deterministic dry run;
-- force an interruption and verify safe resume;
-- mutate one dependency and verify invalidation;
-- keep the protected holdout closed;
-- only then start expensive inference or fine-tuning.
+- Are the exact record IDs frozen?
+- Are source hashes recorded?
+- Is the target/state meaning written down?
+- Does every feature exist by decision time?
+- Are time splits clean?
+- Was preprocessing fitted only on training?
+- Did a simple deterministic baseline run?
+- Did a simple numerical baseline run?
+- Can an interrupted job resume safely?
+- Does changing one dependency invalidate old cache?
+- Is the final test set still closed?
 
-These rules are strategy-agnostic and apply equally to an existing EA, a Python bot or a new research system.
+Only after these checks should a long expensive model run start.
+
+These lessons apply to an existing EA, a Python bot or a new deterministic system built inside this repository.
