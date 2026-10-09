@@ -16,6 +16,9 @@ A checked documentation/design item means the public contract is written; it doe
 - [x] Hardware/research-environment documentation
 - [x] Benchmarking guidelines
 - [x] Generic trading-system research patterns
+- [x] Existing-bot integration guide
+- [x] Generic event-to-causal-context adapter
+- [x] Failure-modes / lessons-learned guide
 - [x] Experiment/AI-agent governance
 - [x] Public/private synchronization rule: open workflow, closed strategy
 
@@ -36,7 +39,18 @@ A checked documentation/design item means the public contract is written; it doe
 
 The candidate-manifest implementation should verify real timestamps, target-column exclusion, duplicates, source provenance and content hashes before expensive model work begins.
 
-## Phase 2 — Rendering and multimodal input
+## Phase 2 — External-system integration
+
+- [x] Generic Python/DataFrame event adapter
+- [x] Example showing causal context attachment to an existing bot
+- [ ] MT4/MT5 CSV/JSON bridge example
+- [ ] SQLite/IPC bridge example
+- [ ] Generic read-only model-output return channel
+- [ ] Multi-symbol integration helper
+
+The integration layer must not require the original strategy to be rewritten or published.
+
+## Phase 3 — Rendering and multimodal input
 
 - [ ] Strategy-agnostic chart renderer
 - [ ] Multi-image / multi-timeframe sample format
@@ -44,7 +58,7 @@ The candidate-manifest implementation should verify real timestamps, target-colu
 - [ ] Visual input masking rules
 - [ ] Public synthetic benchmark set
 
-## Phase 3 — Model adapters
+## Phase 4 — Model adapters
 
 Candidate families include:
 
@@ -64,7 +78,7 @@ Each adapter should document:
 - checkpoint/resume support;
 - license constraints.
 
-## Phase 4 — Frozen representations and fine-tuning recipes
+## Phase 5 — Frozen representations and fine-tuning recipes
 
 - [x] Public workflow specification for frozen VLM feature caches
 - [x] Generic resumable artifact chunk-cache primitives
@@ -79,7 +93,7 @@ Each adapter should document:
 
 The frozen-feature path should remain usable independently from fine-tuning: a researcher may cache a base model representation once and compare multiple cheap downstream heads without repeatedly running the VLM.
 
-## Phase 5 — Structured state and decision heads
+## Phase 6 — Structured state and decision heads
 
 - [ ] Extended typed `MarketState`
 - [ ] visual + numerical fusion interface
@@ -90,7 +104,7 @@ The frozen-feature path should remain usable independently from fine-tuning: a r
 
 The goal is to compare sophisticated perception models while keeping downstream decisions cheap and auditable.
 
-## Phase 6 — Evaluation
+## Phase 7 — Evaluation
 
 - [ ] Classification/regression metrics
 - [ ] R-multiple distribution reports
@@ -103,7 +117,7 @@ The goal is to compare sophisticated perception models while keeping downstream 
 
 A model should not need to be retrained just because a researcher wants to test a different economic policy against already-frozen predictions.
 
-## Phase 7 — Read-only forward validation
+## Phase 8 — Read-only forward validation
 
 - [x] Public read-only forward-validation design
 - [ ] Generic append-only observation-journal implementation
@@ -115,7 +129,7 @@ A model should not need to be retrained just because a researcher wants to test 
 
 This phase validates causal behavior on a live/provider-specific feed without enabling order execution.
 
-## Phase 8 — Community hardware matrix
+## Phase 9 — Community hardware matrix
 
 - [ ] CPU-only reference benchmark
 - [ ] NVIDIA 8–12 GB class
@@ -130,16 +144,16 @@ This phase validates causal behavior on a live/provider-specific feed without en
 Potential starter tasks:
 
 1. Add a CSV/Parquet public-data example.
-2. Add a configurable multi-timeframe ladder.
-3. Add a generic candidate-manifest helper using synthetic/public data.
-4. Add a simple chart renderer.
-5. Add a resumable frozen-VLM feature-cache example.
-6. Add a benchmark result from a consumer GPU.
-7. Add a deterministic moving-average trend/pullback example.
-8. Add a breakout/retest baseline.
+2. Add an MT4/MT5 bridge example that emits generic timestamped events.
+3. Add a configurable multi-timeframe ladder.
+4. Add a generic candidate-manifest helper using synthetic/public data.
+5. Add a simple chart renderer.
+6. Add a resumable frozen-VLM feature-cache example.
+7. Add a benchmark result from a consumer GPU.
+8. Add a deterministic public baseline.
 9. Improve causality tests around market-session boundaries.
 10. Add a read-only append-only journal using synthetic feed fixtures.
 11. Add Linux/Windows setup notes.
 12. Add model-license documentation for one multimodal family.
 
-See [Public workflow synchronization](PUBLIC_WORKFLOW_SYNC.md) for the design behind the candidate, frozen-feature and forward-validation milestones.
+See [Integrating an existing bot or EA](INTEGRATING_EXISTING_BOTS.md), [Failure modes and lessons learned](LESSONS_LEARNED.md), and [Public workflow synchronization](PUBLIC_WORKFLOW_SYNC.md).

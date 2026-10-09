@@ -2,6 +2,7 @@
 
 from .audit import CausalityError, assert_causal_alignment, audit_causal_features
 from .cache import CacheIntegrityError, ResumableChunkCache, atomic_write_bytes
+from .integration import IntegrationError, attach_causal_market_context, validate_bot_events
 from .metrics import evaluate_r_multiples
 from .provenance import (
     ArtifactSealError,
@@ -26,6 +27,7 @@ __all__ = [
     "ArtifactSealError",
     "CacheIntegrityError",
     "CausalityError",
+    "IntegrationError",
     "MarketState",
     "RecordIDMismatchError",
     "ResumableChunkCache",
@@ -35,6 +37,7 @@ __all__ = [
     "apply_numeric_statistics",
     "assert_causal_alignment",
     "atomic_write_bytes",
+    "attach_causal_market_context",
     "audit_causal_features",
     "compare_record_ids",
     "dependency_fingerprint",
@@ -44,6 +47,7 @@ __all__ = [
     "purged_temporal_split",
     "resample_ohlcv_close_indexed",
     "seal_artifact",
+    "validate_bot_events",
     "verify_artifact_seal",
 ]
 

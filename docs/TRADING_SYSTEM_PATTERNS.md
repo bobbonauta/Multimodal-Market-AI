@@ -21,9 +21,9 @@ lower timeframe
 
 Example research logic:
 
-- higher timeframe: price above/below a long moving average or positive/negative slope;
-- middle timeframe: structure remains aligned with the higher-timeframe direction;
-- lower timeframe: wait for a pullback and then a momentum re-acceleration;
+- higher timeframe: a public trend or regime definition;
+- middle timeframe: a structural or directional confirmation;
+- lower timeframe: a public timing rule such as pullback/re-acceleration;
 - stop: structural invalidation or a volatility-normalized distance;
 - exit: fixed R target, trailing structure, or a staged exit policy.
 
@@ -31,25 +31,23 @@ This family is easy to implement and gives a good baseline for testing causal mu
 
 ### Why it can adapt slowly
 
-Many traditional multi-timeframe systems use several smoothed indicators at once. Long moving averages, oscillators and confirmation windows reduce noise, but they also react slowly after a regime change.
+Many traditional multi-timeframe systems use several smoothed signals at once. Smoothing and confirmation windows can reduce noise, but they can also react slowly after a regime change.
 
 That makes this family useful as a **slow-adapting baseline** when testing whether a learned visual/numerical state representation reacts earlier without becoming unstable.
 
-## 2. Momentum-confirmation system
+## 2. Multi-signal confirmation system
 
-A second pattern combines price direction with several momentum clocks.
+A second generic pattern combines several independently computed observations, for example:
 
-Possible inputs:
+- current price/candle direction;
+- one or more momentum measurements;
+- a trend or slope estimate;
+- volatility context;
+- distance from a recent public structural reference.
 
-- Heikin-Ashi or candle direction;
-- ROC / rate-of-change;
-- stochastic oscillator;
-- moving-average slope;
-- volatility-normalized distance from a recent swing.
+A deterministic version can define an explicit confirmation policy. A learned version can instead estimate whether temporary disagreement between inputs carries useful information.
 
-A deterministic version might require all components to agree. A learned version can instead estimate whether disagreement is meaningful or merely temporary noise.
-
-This is a useful multimodal task because a human often looks at the **shape and synchronization** of several curves rather than at one exact threshold.
+The exact indicators, thresholds and confirmation semantics are intentionally left to the user. The public framework focuses on causal synchronization, feature availability and fair comparison between deterministic and learned alternatives.
 
 ## 3. Breakout + retest system
 
@@ -225,6 +223,7 @@ Good starter contributions would be:
 
 - implement one deterministic baseline from this page;
 - add a public-data example for Forex, equities or crypto;
+- connect an existing EA/Python bot through the public integration adapter;
 - compare CPU-only vs GPU models on the same state representation;
 - test whether visual context improves a numerical baseline;
 - benchmark event gating and cache hit rates;
