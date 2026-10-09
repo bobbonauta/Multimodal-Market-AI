@@ -74,7 +74,7 @@ def test_minimum_active_can_block_a_weak_row() -> None:
 def test_invalid_signal_values_are_rejected() -> None:
     frame = pd.DataFrame({"a": [1], "b": [2]})
 
-    with pytest.raises(DeterministicModelError, match="-1, 0 or \+1"):
+    with pytest.raises(DeterministicModelError, match=r"-1, 0 or \+1"):
         combine_directional_signals(frame, ["a", "b"])
 
 
