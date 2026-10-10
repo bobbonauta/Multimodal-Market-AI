@@ -6,34 +6,65 @@ The main idea is simple:
 
 > **Do not rewrite your bot. Let it keep doing its job. Send only the information needed for research to this framework.**
 
-## 1. The small bridge between your bot and this project
+## 1. Where your bot fits
 
-Think of your bot and this project as two separate boxes.
+The project uses four operational jobs:
+
+```text
+ACQUIRE -> EXTRACT -> DECIDE -> APPLY
+```
+
+An existing bot can plug in at different points.
+
+Example:
 
 ```text
 YOUR BOT
    |
-   | sends a small event
+   | exports a timestamped event/state
    v
-THIS PROJECT
+ACQUIRE / EXTRACT adapter
    |
-   | checks time and data
-   | adds market context
-   | can run simple models or AI
+   v
+DECIDE with rules or model
+   |
+   v
+APPLY as read-only result
+```
+
+Your bot does not need to reveal how its private rules work.
+
+## 2. The small bridge
+
+Think of the bot and this project as two separate boxes.
+
+```text
+YOUR BOT OR FROZEN CORE
+   |
+   | sends a small record
+   v
+BRIDGE
+   |
+   | validates ID, time and availability
+   v
+THIS PROJECT / EXTERNAL CONSUMER
+   |
    v
 RESULT FILE / SCORE / REPORT
 ```
 
 At first, the result should be **read-only**. It should not place trades.
 
-## 2. What should the bot send?
+The bridge should transport meaning, not recreate the whole strategy.
+
+## 3. What should the bot send?
 
 At minimum, one row should contain:
 
 | field | simple meaning |
 |---|---|
 | `event_id` | a unique name for this event |
-| `decision_ts` | the exact time when the bot made the decision |
+| `decision_ts` | the exact time when the event/decision existed |
 | `symbol` | the market or instrument |
 | your own values | information your bot already knew at that time |
 
@@ -45,11 +76,23 @@ x001,2026-01-01T10:07:00Z,SYNTH,0.62,1.4,-0.2
 x002,2026-01-01T10:10:00Z,SYNTH,0.47,1.1,0.3
 ```
 
-You do **not** need to explain how `system_score`, `state_a` or `state_b` were calculated. They can stay private.
+You do **not** need to explain how private fields were calculated.
 
 Do not export passwords, API keys or account secrets.
 
-## 3. If your bot is written in Python
+## 4. Missing optional values must stay missing
+
+If your frozen core has an optional field that is not available yet, do not invent a value to complete the row.
+
+```text
+available now   -> send it
+not available   -> keep it empty/unavailable
+available later -> do not send it as if it existed now
+```
+
+The availability time matters as much as the value.
+
+## 5. If your bot is written in Python
 
 Python bots can pass a table directly to the integration helper.
 
@@ -59,93 +102,95 @@ from multimodal_market_ai.integration import attach_causal_market_context
 joined = attach_causal_market_context(bot_events, closed_bars)
 ```
 
-What happens?
+The helper:
 
-1. The function checks that every event has a unique ID.
-2. It checks the event time.
-3. It finds the latest market bar that was already closed.
-4. It adds that bar to the event.
-5. It refuses to use a future bar.
+1. checks unique event IDs;
+2. checks event time;
+3. finds the latest already-closed market bar;
+4. attaches that causal context;
+5. refuses to use a future bar.
 
-Your private columns are kept unchanged.
+Your private columns remain unchanged.
 
-## 4. If your bot is an MT4 or MT5 EA
+## 6. If your bot is an MT4 or MT5 EA
 
 The EA does not need Python inside it.
 
-The easiest research bridge is usually a small file or database.
+A simple research bridge can use:
 
 ```text
 MT4 / MT5 EA
     |
-    | writes one row when something important happens
     v
-CSV / JSON / SQLite
+CSV / JSON / SQLite / IPC
     |
     v
 Python research process
     |
     v
-model result / report
+read-only result
 ```
 
-A generic EA row could look like:
+A generic row could contain:
 
 ```text
-event_id,timestamp_utc,symbol,event_type,state_1,state_2
+event_id,timestamp,symbol,event_type,state_1,state_2
 ```
 
 Then Python can:
 
 1. read the row;
-2. check that the time is valid;
-3. add only market data that already existed;
-4. run a deterministic model, numerical model or AI model;
-5. write a result somewhere else.
+2. verify identity and time;
+3. attach only causal data;
+4. run a deterministic/statistical/AI model;
+5. write a separate result.
 
-Example result:
+## 7. Freeze one canonical core
 
-```json
-{
-  "event_id": "x001",
-  "model_revision": "example-v1",
-  "quality_score": 0.71,
-  "risk_score": 0.29
-}
+If you are rebuilding part of a large bot as a deterministic system, avoid maintaining two independent copies of the same logic.
+
+A safer pattern is:
+
+```text
+one canonical deterministic core
+        |
+        | frozen output record
+        v
+bridge / EA / service
 ```
 
-These names are only examples.
+Before freezing the core, use replay and prefix-invariance checks.
 
-## 5. Start with old data before live data
+Read: [Deterministic freeze protocol](DETERMINISTIC_FREEZE_PROTOCOL.md).
 
-Do not start by connecting AI to live trading.
+## 8. Start with old data before live data
 
 A safer order is:
 
 ```text
 old bot events
  -> check IDs and times
- -> add causal market context
- -> check for future-information mistakes
- -> create outcomes later
- -> split data by time
- -> simple deterministic baseline
- -> simple numerical baseline
+ -> attach causal market context
+ -> test deterministic replay
+ -> freeze the core/contract
+ -> build outcomes separately
+ -> split by time
+ -> simple baseline
  -> optional AI
  -> read-only live test
 ```
 
-This lets you find mistakes when nothing can affect real orders.
+This finds errors when nothing can affect real orders.
 
-## 6. Keep the two worlds separate
+## 9. Keep responsibilities separate
 
-### Your bot owns
+### Your bot/private core owns
 
-- its private strategy;
-- its indicators;
-- its candidate rules;
-- its execution logic;
-- broker and account settings.
+- private strategy rules;
+- proprietary indicators;
+- candidate/setup rules;
+- any private internal state;
+- execution logic and broker/account settings.
 
 ### This framework can own
 
@@ -155,17 +200,16 @@ This lets you find mistakes when nothing can affect real orders.
 - train/validation/test separation;
 - leakage checks;
 - deterministic signal combination;
+- reproducibility/freeze checks;
 - model comparison;
 - cache/resume tools;
 - read-only live validation.
 
-This separation is useful because you can improve the research layer without touching the code that already works inside your bot.
+## 10. You can rebuild only the part you want
 
-## 7. You can also rebuild part of the bot as a public deterministic model
+Maybe your old bot has a large signal section but you want a smaller auditable version.
 
-Maybe your old bot has a very large signal section and you want to test a cleaner version.
-
-You can export or recalculate a few simple signals:
+Export or recalculate a few replaceable signals:
 
 ```text
 signal A
@@ -173,9 +217,7 @@ signal B
 signal C
 ```
 
-Then combine them with the public deterministic helper.
-
-Example:
+Then use:
 
 ```python
 from multimodal_market_ai.deterministic import combine_directional_signals
@@ -187,11 +229,9 @@ result = combine_directional_signals(
 )
 ```
 
-Now you have a small public model that can be changed one rule at a time.
+You can map the final directional result to a separate decision layer such as `LONG / SHORT / WAIT`.
 
-Read: [Multi-signal and deterministic model](MULTI_SIGNAL_AND_DETERMINISTIC_MODEL.md).
-
-## 8. What can AI do after the bot is connected?
+## 11. What can AI do after the bot is connected?
 
 AI does not need to replace the bot.
 
@@ -205,33 +245,36 @@ It can be tested as:
 - a risk or uncertainty estimate;
 - a continuation/deterioration estimate after an event already exists.
 
-If the AI adds nothing useful, leave it out.
+These are different research targets. Keep their meaning separate.
 
-## 9. What is a read-only live test?
+If AI adds nothing useful, leave it out.
 
-The model watches real incoming data and writes its answer, but cannot place an order.
+## 12. What is a read-only live test?
+
+The model watches incoming data and writes its answer, but cannot place an order.
 
 Check:
 
 - Does every event arrive once?
 - Are timestamps correct?
-- What happens after a restart?
-- Does the data provider change old bars?
-- Is the model too slow?
-- Does live behavior look like the historical test?
+- What happens after restart?
+- Does the provider revise old bars?
+- Does a frozen offline event reproduce live?
+- Is latency acceptable?
 
-Only after this stage should execution integration even be discussed.
+Read-only validation proves transport and causality behavior, not profitability.
 
-## 10. Common mistakes to avoid
+## 13. Common mistakes to avoid
 
 Do not:
 
 - use future information in a feature;
-- join rows only because they are in the same position;
-- silently throw away unmatched events;
-- calculate preprocessing again on validation/test data;
-- reuse an old cache only because the file exists;
-- keep looking at the final test set while changing the model;
-- assume that AI must improve a mature bot.
+- silently discard unmatched events;
+- invent unavailable optional fields;
+- rebuild strategy logic independently inside the bridge;
+- reuse stale caches;
+- repeatedly open the final holdout;
+- compare outputs before confirming input fingerprints;
+- assume AI must improve a mature bot.
 
-More examples: [Failure modes and lessons learned](LESSONS_LEARNED.md).
+More examples: [Lessons learned](LESSONS_LEARNED.md).

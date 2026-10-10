@@ -1,317 +1,270 @@
-# Public workflow: causal candidates, frozen VLM features and read-only forward validation
+# Public workflow: research and validation around one operational pipeline
 
-This document captures reusable engineering patterns extracted from private market-research work without publishing any proprietary trading strategy.
+This document describes reusable engineering patterns learned from private market-research work without publishing any proprietary trading strategy.
 
-The principle is simple: **open workflow, closed strategy**.
+The rule is:
 
-The public project can describe how to build, audit, cache and validate a multimodal market pipeline while keeping private the exact strategy rules, thresholds, signal semantics, private labels, datasets and checkpoints.
+> **Open workflow, closed strategy.**
 
-The public core now includes strategy-agnostic primitives for artifact seals and exact record matching, purged temporal splits with training-only numeric statistics, allowlisted causal feature checks, and resumable chunk caches. A [reproducible synthetic example](../examples/synthetic_candidates/README.md) publishes source observations, an explicit selector and its candidate manifest. A reusable candidate-manifest interface and a frozen-feature adapter remain separate milestones.
-
-## 1. Separate candidate selection from future outcomes
-
-A useful market-AI workflow should not start by letting a model search the entire history with future outcomes already attached.
-
-A safer structure is:
+The operational system stays simple:
 
 ```text
-raw / normalized history
+ACQUIRE -> EXTRACT -> DECIDE -> APPLY
+```
+
+Research tools such as candidate manifests, frozen VLM features, train/validation/test splits and read-only forward observers exist to build or validate those four stages. They are not separate mandatory pipelines.
+
+## 1. Freeze the operational meaning before expensive research
+
+Before training a large model, make sure the four jobs are clear.
+
+### ACQUIRE
+
+What market/event data exists at the decision time?
+
+### EXTRACT
+
+What causal facts or features are produced from that data?
+
+### DECIDE
+
+What is the decision target and what does each possible decision mean?
+
+### APPLY
+
+Where does the decision go, starting preferably with a read-only output?
+
+Changing one of these meanings after seeing results creates a new experiment version.
+
+## 2. Keep signal abstention, WAIT and internal state separate
+
+A single signal may have no vote.
+
+A final decision layer may choose `WAIT`.
+
+A private system may maintain a longer-lived internal state.
+
+These are different concepts and should not be silently stored as one variable.
+
+For a public trading example:
+
+```text
+LONG
+SHORT
+WAIT
+```
+
+`WAIT` means no new LONG/SHORT action now. The public framework does not prescribe one proprietary explanation for every WAIT case.
+
+## 3. Deterministic core before model selection
+
+The deterministic/data path should be reproducible before it becomes the base for model comparison.
+
+Useful checks include:
+
+- source/input hashes;
+- exact record IDs;
+- stable required schema;
+- feature availability times;
+- prefix invariance under future-appended data;
+- isolated-run reproduction;
+- explicit handling of missing/unavailable values.
+
+Once the agreed checks pass, freeze that deterministic version for the comparison.
+
+See [Deterministic freeze protocol](DETERMINISTIC_FREEZE_PROTOCOL.md).
+
+## 4. Candidate selection is a research tool
+
+A deterministic selector may identify a smaller set of historical cases for a specific experiment.
+
+A safe structure is:
+
+```text
+causal historical observations
         -> deterministic candidate selector
-        -> causal audit
+        -> candidate audit
         -> immutable candidate manifest
-        -> model / representation stage
-        -> future-outcome labels and economic evaluation in a separate process
+        -> optional models / representations
+        -> future outcomes computed separately
 ```
 
-The candidate selector may encode a generic event gate, regime filter, structural condition or other user-defined precondition, but it must use only information available at the historical decision timestamp.
+The selector must use only information available at `decision_ts`.
 
-The key rule is:
+A candidate manifest should record at least:
 
-> Freeze which historical rows are candidates before computing or exposing any future-outcome label used to evaluate those candidates.
+- unique candidate IDs;
+- decision timestamps;
+- source revision/hash;
+- selector revision;
+- causal-audit result;
+- content hash.
 
-This prevents accidental circularity where the definition of an interesting event is influenced by what happened after the event.
+Freeze the candidate population before exposing future-dependent outcomes used for evaluation.
 
-## 2. Causal candidate manifest
+## 5. Frozen VLM features are optional
 
-Before expensive model inference or training, create a reproducible manifest of the selected candidates.
+A VLM is one possible tool inside research, not a required stage of every system.
 
-A candidate audit should verify at least:
-
-- every timestamp-bearing input used by the selector is `<= decision_ts`;
-- no future/outcome/target field is used by the selector;
-- the split is derived from actual timestamps, not trusted only from an old `TRAIN`/`TEST` label;
-- candidate identifiers are unique;
-- duplicate instrument/time/event keys are detected;
-- the source dataset and selector version are recorded;
-- the resulting manifest receives a content hash.
-
-The feature-level causal audit helper requires an explicit allowlist and availability timestamp for each selected input. It rejects declared forbidden columns and fails closed when required timestamps or columns are missing or invalid.
-
-A strategy-agnostic metadata record may look like:
-
-```yaml
-schema: candidate_manifest_v1
-split: train
-candidate_count: <count>
-source_manifest_sha256: <hash>
-candidate_file_sha256: <hash>
-selector_revision: <revision>
-causality:
-  result: pass
-  future_timestamp_violations: 0
-selector_target_columns_used: []
-duplicates: 0
-```
-
-The public repository does not need the private candidate rows themselves. The reusable idea is the audit contract and provenance structure.
-
-## 3. Frozen VLM feature extraction
-
-A vision-language model does not always need to be fine-tuned or asked to generate text for every downstream experiment.
-
-Another useful pattern is to use a **frozen multimodal model as a feature extractor**:
+One efficient pattern is:
 
 ```text
 causal rendered sample
         -> frozen VLM
-        -> hidden representation / feature vector
-        -> cached feature artifact
-        -> lightweight downstream model or analysis
+        -> feature vector
+        -> sealed/resumable cache
+        -> lightweight downstream comparison
 ```
 
-During this stage:
+During frozen feature extraction:
 
-- the base model is in evaluation/frozen mode;
-- there is no optimizer step;
-- no future-outcome label is required for feature extraction;
-- protected test/holdout data stays closed during development;
-- model revision, processor revision, prompt/schema and renderer version are recorded;
-- the cache is treated as a derived artifact, not as raw data.
+- the base model does not train;
+- no future outcome is needed to create the feature;
+- exact model/revision is recorded;
+- renderer/preprocessing/prompt/schema revisions are recorded;
+- exact sample IDs are recorded;
+- incomplete chunks are not reusable.
 
-This can make large experiments practical because the expensive visual pass is performed once while many inexpensive downstream heads can reuse the same frozen representation.
+A visual representation containing information does not automatically mean it improves a simpler numerical baseline. Incremental value must be measured on the same rows and split.
 
-### Chunked and resumable feature caches
+## 6. Labels and outcomes remain downstream
 
-Long extraction jobs should be restartable.
-
-A robust chunk should have:
-
-- a deterministic partition key;
-- sample IDs in stable order;
-- feature shape/dtype metadata;
-- model and renderer provenance;
-- source candidate-manifest hash;
-- output content hash;
-- wall time / throughput metadata when benchmarking matters;
-- an explicit `complete` flag.
-
-Recommended write pattern:
+Keep information known at decision time separate from facts computed later.
 
 ```text
-compute chunk
-    -> write temporary file
-    -> fsync/close when appropriate
-    -> atomic rename to final artifact
-    -> write sidecar metadata + hash
-```
-
-On resume, skip a chunk only when its metadata says it is complete **and** its stored hash matches the actual artifact.
-
-A file merely existing is not proof that a previous run finished correctly.
-
-The generic chunk-cache helper implements atomic data and metadata writes, dependency-bound reuse, exact expected chunk IDs, invalidation of stale or interrupted chunks, and a completeness check. Applying this helper to a particular frozen model and feature schema remains the caller's responsibility.
-
-## 4. Labels remain a separate downstream process
-
-The candidate manifest and frozen feature cache should not contain future-dependent supervision unless the experiment explicitly creates a separate labelled derivative.
-
-A clean lineage is:
-
-```text
-candidate_manifest_v1
+causal case / candidate
         |
-        +--> frozen_features_v1
+        +--> deterministic / numerical / visual features
         |
-        +--> future_outcomes_v1
+        +--> future outcome or target
                     |
                     v
-              supervised head
+             supervised evaluation
 ```
 
-This makes it possible to change an evaluation target without rebuilding the candidate selector, and to reuse the same frozen perception layer for multiple downstream research questions.
+This lets one set of causal inputs be reused for different research questions without redefining what was known at the time.
 
-It also makes audits easier: a reviewer can distinguish what existed at `decision_ts` from information that was computed later for supervision.
+## 7. Train / validation / test discipline
 
-## 5. Read-only forward validation
+A split label is not enough by itself.
 
-Historical backtests are not enough to verify that a causal pipeline behaves correctly on a live broker/data feed.
+Verify the real timestamps.
 
-A safe intermediate stage is a **read-only forward observer**. It watches the live feed but cannot place orders.
+For supervised experiments:
 
-Recommended architecture:
+- training uses the past;
+- validation is used for development/model choice;
+- final test/holdout stays closed until the protocol is frozen;
+- a row whose outcome lifecycle crosses a boundary should be purged when required;
+- preprocessing statistics are fitted on training only.
+
+If the final holdout is repeatedly opened while choices are still changing, it is no longer a clean final test.
+
+## 8. Compare candidate models only after the contract is frozen
+
+Do not choose a model because it is fashionable or large.
+
+Compare candidates using the same:
+
+- dataset;
+- rows/record IDs;
+- time split;
+- allowed inputs;
+- target semantics;
+- metrics;
+- frozen deterministic/core pipeline.
+
+Possible candidates can include simple rules, statistical/tabular models and multimodal models.
+
+If the complex model does not add robust value, keep the simpler one.
+
+## 9. Read-only forward validation
+
+After the offline core is stable, observe the same logic on a live/provider feed without giving it order authority.
+
+Recommended pattern:
 
 ```text
-live/broker feed
-    -> raw closed-bar observation journal
-    -> causal reconstruction / state calculation
-    -> model observation or decision record
-    -> sanitized audit output
+live/provider feed
+    -> append-only raw observation journal
+    -> frozen causal extraction
+    -> decision record
+    -> read-only bridge/output
+    -> sanitized audit
 ```
 
-The observer should be an observer, not an actor.
+The bridge should transport the frozen result rather than recreate the strategy independently.
 
-### Raw observations and decisions are different things
+### Closed observations only
 
-Keep raw feed observations in a separate namespace/table from derived decisions or model outputs.
+For a bar-close system, only completed bars are historical facts.
 
-This prevents a raw low-level bar from being mistaken for a system decision and makes provenance clearer.
+Test:
 
-Example logical separation:
+- pauses;
+- weekends/holidays;
+- delayed data;
+- restart recovery;
+- timestamp semantics;
+- provider history revisions.
+
+### Do not silently rewrite live history
+
+If a provider changes a previously observed bar, preserve provenance and mark affected comparisons instead of pretending the old decision saw the revised value.
+
+## 10. Input mismatch comes before output mismatch
+
+Before saying two executions disagree, confirm they received the same input.
 
 ```text
-raw_observations
-  identity
-  instrument
-  timeframe
-  closed_at
-  raw_payload
+same input fingerprint -> compare outputs
 
-decisions
-  identity
-  instrument
-  decision_ts
-  derived_state
-  model_revision
-  output
+different input fingerprint -> mark non-comparable
 ```
 
-The exact schema is application-specific, but the semantic separation should be explicit.
+Same row count and same start/end timestamps do not prove identical content.
 
-### Append-only and deduplicated journal
+## 11. Continuous work does not mean uncontrolled work
 
-A forward journal should prefer append-only semantics.
+A safe workflow does not need to stop after every report or commit.
 
-Use a stable uniqueness key such as:
+If the next step is already authorized, read-only/reversible and does not change semantics, it can continue.
 
-```text
-(feed identity, instrument, timeframe, closed timestamp)
-```
+Stop for review when the next step would require something materially new, for example:
 
-or the appropriate equivalent for the source.
+- changing the frozen core or target meaning;
+- opening a protected holdout;
+- inventing a missing domain rule;
+- enabling execution/order authority;
+- destructive or hard-to-reverse changes;
+- unresolved causality/leakage;
+- paid/expensive compute outside the approved experiment.
 
-Repeated polling and process restarts must not create duplicate observations.
+A checkpoint is evidence, not automatically a blocker.
 
-### Closed bars only
+## 12. Public/private boundary
 
-The pipeline should know whether the latest market bar is still forming.
+Safe public material includes strategy-agnostic:
 
-Only a bar whose interval has completed may be treated as a closed historical fact for a bar-close decision pipeline.
-
-Special cases worth testing include:
-
-- market pauses;
-- weekends;
-- holidays;
-- delayed ticks;
-- restart after the expected close time;
-- provider-specific timestamp semantics.
-
-### Restart recovery
-
-After a restart, the observer should recover missing closed observations when the source allows it, while preserving deduplication.
-
-A restart must not silently reset the context window if that would change the meaning of later decisions.
-
-### Detect historical revisions
-
-Some feeds may revise OHLC/spread/history already seen by the observer.
-
-If a previously journaled closed bar changes, do not silently rewrite history and pretend the old decision was made from the new value.
-
-Prefer one of these explicit policies:
-
-- stop and raise a history-revision incident;
-- preserve both revisions with provenance;
-- mark the affected downstream decision lineage as non-comparable.
-
-The correct policy depends on the research use case, but silent mutation is the dangerous option.
-
-## 6. Sanitized forward evidence
-
-A public audit does not need to contain brokerage credentials, account numbers or private strategy outputs.
-
-Useful public evidence may include:
-
-- observer version;
-- feed/timestamp semantics in generic form;
-- number of observed closed bars;
-- duplicate count;
-- gap/recovery checks;
-- history-revision behavior;
-- test results from synthetic fixtures;
-- hashes of sanitized manifests;
-- limitations and unresolved assumptions.
+- four-stage pipeline architecture;
+- causal contracts;
+- deterministic freeze/replay methodology;
+- candidate manifests;
+- split discipline;
+- cache/provenance patterns;
+- synthetic examples;
+- read-only bridging patterns;
+- benchmark methodology;
+- failure modes and lessons learned.
 
 Keep private:
 
-- credentials;
-- account identifiers;
-- private broker/account bindings;
-- proprietary signal details;
-- private decision records that reconstruct a strategy.
-
-## 7. End-to-end public research pattern
-
-The reusable workflow can be summarized as:
-
-```text
-historical / live observations
-        -> immutable or append-only raw record
-        -> causal normalization and timeframe construction
-        -> deterministic candidate gate
-        -> candidate causality audit
-        -> frozen candidate manifest
-        -> optional frozen VLM feature cache
-        -> downstream supervised/unsupervised models
-        -> separately computed outcomes/economic evaluation
-        -> frozen experiment protocol
-        -> read-only forward observer
-        -> sanitized audit
-```
-
-This architecture intentionally separates four questions:
-
-1. **Was the information available at the time?**
-2. **Which cases were selected without looking at the future?**
-3. **What representation did the model extract from those cases?**
-4. **What happened later, and how should that be evaluated?**
-
-Keeping those questions separate is one of the strongest defenses against accidental leakage and irreproducible market-AI results.
-
-## 8. Public/private boundary
-
-Safe to publish when strategy-agnostic:
-
-- pipeline architecture;
-- causality contracts;
-- generic schemas;
-- synthetic fixtures;
-- hashing/manifests;
-- resumable-cache patterns;
-- read-only logging patterns;
-- tests for duplicate/gap/restart/history-revision behavior;
-- generic benchmark methodology.
-
-Keep private when it would expose the underlying system:
-
 - proprietary setup definitions;
-- exact private trigger semantics;
-- thresholds and parameter combinations that reconstruct the method;
-- private timeframe hierarchies when they are part of the strategy itself;
-- private labels or decision history;
-- non-redistributable datasets;
-- private checkpoints/weights;
-- account, credential or broker-binding data;
-- internal counts/results when they would materially reveal the strategy.
+- exact strategy rules and thresholds;
+- private timeframe hierarchies when they reveal the method;
+- private labels/decision history that reconstruct the strategy;
+- private datasets and economic results;
+- private prompts/checkpoints/weights when publication is not intended;
+- account, credential and broker-binding details.
 
-The purpose of this repository is to make the **research process** reproducible without turning a private strategy into public source code.
+The public goal is to make the **engineering process** reproducible while allowing every user to plug in a different private or public strategy.

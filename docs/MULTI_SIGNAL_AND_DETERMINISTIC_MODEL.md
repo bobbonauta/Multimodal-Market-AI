@@ -1,68 +1,86 @@
 # Multi-signal and deterministic model — explained simply
 
-This page explains two ideas used by this project:
+This page explains two ideas:
 
-1. **multi-signal**: use more than one simple clue;
-2. **deterministic model**: write exact rules that always give the same answer from the same data.
+1. **multi-signal** — use more than one simple clue;
+2. **deterministic model** — write exact rules that always give the same answer from the same data.
 
-You do not need to be a programmer or a trader to understand the idea.
+You do not need to be a programmer or trader to understand the idea.
 
 ## 1. What is a signal?
 
-A **signal** is just the answer to one small question.
+A signal is the answer to one small question.
 
-For example:
+Examples:
 
 - Is the recent trend pointing up?
 - Is price moving faster than before?
 - Is price above a reference level?
 - Is volatility too high?
 
-One signal should answer **one simple question**.
+One signal should answer one simple question.
 
 A signal is not automatically a trade.
 
-Think of three friends looking at the same sky:
+Think of three people looking at the weather:
 
-- friend A says: “the clouds are dark”;
-- friend B says: “the wind is getting stronger”;
-- friend C says: “I can hear thunder”.
+- one sees dark clouds;
+- one feels strong wind;
+- one hears thunder.
 
-Each friend gives one clue. The final decision — “take an umbrella” — can use all three clues together.
+Each person gives one clue. A later rule combines the clues.
 
-That is the basic idea of a **multi-signal system**.
+That is the basic idea of a multi-signal system.
 
-## 2. What does multi-signal mean?
+## 2. Public signal convention
 
-**Multi-signal** means that the system does not depend on only one clue.
+The helper in this repository uses:
 
-Instead, several independent rules produce small opinions. Then another rule combines them.
+```text
++1 = this rule points one way
+-1 = this rule points the other way
+ 0 = this rule is not voting right now
+```
 
-A very simple public convention is:
+The `0` belongs to the **individual signal**.
 
-- `+1` = this rule points upward / positive;
-- `-1` = this rule points downward / negative;
-- `0` = this rule has no opinion right now.
+It does not automatically mean:
 
-In this public helper, `0` means only **“this rule is not voting”**. It is not a special market state.
+- a neutral market regime;
+- missing data;
+- a persistent internal state;
+- the final system decision.
 
-Example:
+Keep those meanings separate.
 
-| rule | answer |
-|---|---:|
-| trend rule | +1 |
-| momentum rule | +1 |
-| structure rule | -1 |
+## 3. The final decision is a different layer
 
-A majority system would produce `+1`, because two rules point up and one points down.
+After signals are combined, a trading system may choose:
 
-## 3. What is a deterministic model?
+```text
+LONG
+SHORT
+WAIT
+```
 
-A **deterministic model** is a machine made of exact rules.
+`WAIT` means: do not perform LONG or SHORT yet.
 
-If you give it the same data twice, it gives the same answer twice.
+A caller may map a deterministic `det_signal = 0` to `WAIT`, but the two ideas should still be documented separately:
 
-There is no randomness and no “AI intuition”.
+```text
+signal-level 0 -> this rule or combiner has no directional choice
+final WAIT     -> the decision layer chooses no action now
+```
+
+A private system may also keep an internal state that lasts longer than one decision. That is another separate concept.
+
+## 4. What is a deterministic model?
+
+A deterministic model is a machine made of exact rules.
+
+If you give it the same data twice, it should give the same answer twice.
+
+There is no randomness and no hidden AI intuition.
 
 Example:
 
@@ -70,37 +88,31 @@ Example:
 IF rule A says +1
 AND rule B says +1
 AND rule C says +1
-THEN final signal = +1
+THEN result = +1
 ```
 
 Or:
 
 ```text
 IF at least 2 rules out of 3 say +1
-THEN final signal = +1
+THEN result = +1
 ```
 
-The important part is that the rules are written down and can be checked.
+The rules can be checked and replaced.
 
-This makes a deterministic model useful as the **first version of a system** and as a **baseline** to compare against AI.
+## 5. Three simple ways to combine signals
 
-## 4. Three simple ways to combine signals
+### Majority
 
-The public helper supports three common ideas.
-
-### A. Majority
-
-The side with more votes wins.
+The side with more active votes wins.
 
 ```text
-+1, +1, -1  -> +1
--1, -1, +1  -> -1
-+1, -1,  0  ->  0   (tie)
++1, +1, -1 -> +1
+-1, -1, +1 -> -1
++1, -1,  0 ->  0
 ```
 
-This is easy to understand and is often a good first experiment.
-
-### B. Unanimous
+### Unanimous
 
 All active signals must agree.
 
@@ -110,168 +122,133 @@ All active signals must agree.
 +1, +1, -1 -> 0
 ```
 
-This is stricter. It usually produces fewer decisions.
+### Weighted
 
-### C. Weighted
-
-Some rules can be more important than others.
-
-Example:
+Some rules can count more than others.
 
 ```text
-trend     weight 0.6
-momentum  weight 0.3
-structure weight 0.1
+signal A weight = 0.6
+signal B weight = 0.3
+signal C weight = 0.1
 ```
 
-If the trend rule says `+1`, it counts more than the structure rule.
+Weights should be chosen and tested without looking into future evaluation data.
 
-Weights should be chosen carefully and tested on past data without looking into the future.
+## 6. A theoretical replaceable system
 
-## 5. A theoretical system anyone can replace
-
-Imagine a completely generic system with three rules.
+Imagine three generic rules.
 
 ### Rule A — trend
 
 Ask:
 
-> Is a faster measure of price above a slower measure?
-
-Possible output:
-
-```text
-above  -> +1
-below  -> -1
-```
+> Is a faster measure above or below a slower measure?
 
 ### Rule B — momentum
 
 Ask:
 
-> Is price moving in the same direction as the trend right now?
-
-Possible output:
-
-```text
-moving up   -> +1
-moving down -> -1
-unclear     -> 0
-```
+> Is price currently moving in the same direction as the trend clue?
 
 ### Rule C — structure
 
 Ask:
 
-> Is price on the positive or negative side of a recent reference area?
+> Is price on one side or the other of a recent reference area?
 
-Possible output:
+Then combine the three rules.
 
-```text
-positive side -> +1
-negative side -> -1
-inside/noisy  -> 0
-```
+This is only a teaching example.
 
-Now combine them with majority voting.
+Another user could replace them with:
 
-This is only a teaching example. You can replace every rule.
-
-For example, another person could use:
-
-- volume instead of momentum;
-- volatility instead of structure;
-- a custom indicator from an existing EA;
-- a neural network output as one of the signals;
-- signals from different timeframes;
-- signals from different markets.
+- volume;
+- volatility;
+- a private indicator from an EA;
+- relative strength;
+- an AI output;
+- signals from another timeframe;
+- signals from another market.
 
 The rest of the repository does not need to change.
 
-## 6. The important idea: replace the signals, not the whole project
+## 7. Replace the signals, not the whole project
 
-Suppose your first version uses:
-
-```text
-signal_A = trend
-signal_B = momentum
-signal_C = structure
-```
-
-Later you discover that `signal_B` is weak.
-
-You can replace only that part:
+Suppose version 1 is:
 
 ```text
-signal_A = trend
-signal_B = new_rule
-signal_C = structure
+A = trend
+B = momentum
+C = structure
 ```
 
-Then recalculate the deterministic model and compare the new results with the old ones.
+Later you decide B is weak.
 
-You do **not** need to rebuild the whole project.
+Version 2 can be:
 
-This is one of the main goals of Multimodal Market AI: keep each part separate enough that it can be changed and tested without destroying everything else.
+```text
+A = trend
+B = new_rule
+C = structure
+```
 
-## 7. You can build your own system directly inside this repository
+Recalculate the deterministic output and compare the two versions fairly.
 
-You do not need an existing bot.
+Do not rebuild the whole project just because one rule changed.
 
-A complete path can start here:
+## 8. Where this fits in the operational pipeline
+
+The project uses four jobs:
+
+```text
+ACQUIRE -> EXTRACT -> DECIDE -> APPLY
+```
+
+A multi-signal deterministic system normally belongs mostly in **EXTRACT**, and it may also provide a simple baseline for **DECIDE**.
+
+Example:
 
 ```text
 market data
-   -> create simple signals
-   -> combine signals with deterministic rules
-   -> obtain candidates / decisions
-   -> attach causal multi-timeframe context
-   -> record what happened later
-   -> split past data into train / validation / test
-   -> compare simple models
-   -> optionally add visual / multimodal AI
-   -> read-only live test
+ -> calculate signals
+ -> combine them deterministically
+ -> decision layer maps the result to LONG / SHORT / WAIT
+ -> read-only output
 ```
 
-This means the repository can be used in two ways:
+Read: [Operational pipeline](OPERATIONAL_PIPELINE.md).
 
-### Path 1 — you already have a bot
+## 9. Build the deterministic core before AI
 
-```text
-your bot
- -> integration adapter
- -> causal data + AI experiments
-```
-
-### Path 2 — you have no bot yet
-
-```text
-public deterministic model
- -> your own signals
- -> your own deterministic strategy
- -> causal data + AI experiments
-```
-
-Both paths can later use the same auditing, caching, model-comparison and multimodal tools.
-
-## 8. Why build the deterministic model before AI?
-
-Because AI should have something simple to beat.
-
-If a simple three-rule system works as well as a large model, the large model may not be worth the cost.
+AI should have a simple baseline to beat.
 
 A sensible order is:
 
 ```text
-1. simple deterministic rules
-2. simple statistical / tabular model
-3. optional multimodal model
-4. compare them on the same rows
+1. deterministic rules
+2. prove the deterministic output is causal and reproducible
+3. freeze that version
+4. simple statistical model
+5. optional multimodal model
+6. compare them on the same data
 ```
 
-This helps avoid wasting GPU time and makes errors easier to find.
+If a large AI model does not improve on the simpler system, more complexity may not help.
 
-## 9. How the public Python helper works
+## 10. A deterministic model is not frozen just because it runs
+
+Before you call the deterministic core stable, test that:
+
+- adding later data does not change old historical records;
+- isolated runs reproduce sequential runs;
+- input hashes match before outputs are compared;
+- required record IDs are stable;
+- schema differences are separated from value differences;
+- unavailable information is not invented.
+
+Read: [Deterministic freeze protocol](DETERMINISTIC_FREEZE_PROTOCOL.md).
+
+## 11. Public Python helper
 
 The repository provides:
 
@@ -279,7 +256,7 @@ The repository provides:
 from multimodal_market_ai.deterministic import combine_directional_signals
 ```
 
-Your data can contain three signal columns:
+Example:
 
 ```python
 import pandas as pd
@@ -291,86 +268,66 @@ frame = pd.DataFrame(
         "structure": [0, 1, -1],
     }
 )
-```
-
-Then combine them:
-
-```python
-from multimodal_market_ai.deterministic import combine_directional_signals
 
 result = combine_directional_signals(
     frame,
     ["trend", "momentum", "structure"],
     policy="majority",
 )
-
-print(result)
 ```
 
-The result adds:
+The result contains:
 
-- `det_score`: how strongly the active signals lean one way;
-- `det_active_signals`: how many rules voted;
-- `det_signal`: the final deterministic answer.
+- `det_score` — how strongly active signals lean one way;
+- `det_active_signals` — how many rules voted;
+- `det_signal` — the deterministic directional result.
 
-The helper does **not** tell you which indicators to use. That is intentional. Your signals are your system.
+The helper does not tell you which indicators to use. Your signals are your system.
 
-## 10. From deterministic model to AI-assisted model
+## 12. AI can be added without replacing the deterministic core
 
-Once you have a deterministic model, AI can be added in several ways.
-
-### AI as a filter
+### AI as another clue
 
 ```text
-deterministic candidate
- -> AI says high quality / low quality
-```
-
-### AI as another signal
-
-```text
-trend signal
-momentum signal
-structure signal
+signal A
+signal B
+signal C
 AI signal
-      -> deterministic combiner
+   -> deterministic combiner
 ```
 
-### AI as a second-stage model
+### AI as a second-stage decision model
 
 ```text
-deterministic system
- -> candidate dataset
- -> AI learns which situations behave differently
+deterministic extracted state
+ + other causal features
+ -> model
+ -> LONG / SHORT / WAIT
 ```
 
-### AI for post-decision analysis
+### AI as post-decision analysis
 
 ```text
-trade/event already exists
+an event already exists
  -> AI estimates continuation, deterioration or uncertainty
 ```
 
-The deterministic system remains visible and auditable in every case.
+These are different experiments. Do not merge them into one unexplained target.
 
-## 11. What must not change when you compare versions
+## 13. Compare versions fairly
 
-If you replace a signal, compare old and new systems fairly.
+When you replace a signal or model, keep constant:
 
-Keep these things the same:
+- historical period;
+- market rows;
+- train/validation/test split;
+- target meaning;
+- costs if economic evaluation is used;
+- evaluation method;
+- frozen deterministic/core pipeline where required.
 
-- the same historical period;
-- the same market rows;
-- the same train/validation/test split;
-- the same transaction-cost assumptions;
-- the same evaluation method.
+Otherwise you may think the new version is better only because it was tested on an easier problem.
 
-Otherwise you may think the new rule is better only because it was tested on easier data.
+## Main rule
 
-## 12. The main rule
-
-The model should be easy to change but hard to fool.
-
-Build small pieces. Test each piece. Keep timestamps causal. Keep the final holdout protected. Compare simple systems before expensive ones.
-
-Then replace one piece at a time and measure whether it actually improved the result.
+Build small pieces. Give every field one clear meaning. Keep timestamps causal. Freeze the deterministic core before final model comparison. Change one piece at a time and measure what actually improved.

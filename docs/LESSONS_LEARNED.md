@@ -2,7 +2,7 @@
 
 This page records mistakes found during internal research.
 
-The private strategy is not shown here. Only the lesson is shared.
+The private strategy is not shown here. Only the reusable lesson is shared.
 
 The goal is simple: **other people should not have to lose time repeating the same mistakes.**
 
@@ -22,15 +22,23 @@ The goal is simple: **other people should not have to lose time repeating the sa
 
 **What to do:** give missing/unknown information its own clear meaning.
 
-## 3. Similar column names can still mean different things
+## 3. A rule-level zero is not automatically final WAIT
+
+**Mistake:** using the same value for “this one signal did not vote” and “the final system decided not to act”.
+
+**Why it is bad:** one small rule and the final decision are different layers.
+
+**What to do:** document them separately. In this repository, an input signal can use `0` for “no vote”; a caller may map an unresolved final result to `WAIT` at the decision layer.
+
+## 4. Similar column names can still mean different things
 
 **Mistake:** comparing two columns only because their names look similar.
 
 **Why it is bad:** you may see a huge disagreement that is not real.
 
-**What to do:** first check what each column actually means and what role it plays.
+**What to do:** first check what each column means and what role it plays.
 
-## 4. Required files must really be checked
+## 5. Required files must really be checked
 
 **Mistake:** a needed input file is missing, but the program quietly skips it.
 
@@ -38,7 +46,7 @@ The goal is simple: **other people should not have to lose time repeating the sa
 
 **What to do:** mark inputs as required or optional. Missing required input = stop.
 
-## 5. A file existing does not mean the job finished correctly
+## 6. A file existing does not mean the job finished correctly
 
 **Mistake:** a long job stops halfway, but the output file exists, so the next run trusts it.
 
@@ -46,7 +54,7 @@ The goal is simple: **other people should not have to lose time repeating the sa
 
 **What to do:** save completion information, hashes and exact record IDs. Reuse only if all checks pass.
 
-## 6. If an input changes, old cached output may be wrong
+## 7. If an input changes, old cached output may be wrong
 
 **Mistake:** changing source data, model version or preprocessing but keeping the old cache.
 
@@ -54,7 +62,7 @@ The goal is simple: **other people should not have to lose time repeating the sa
 
 **What to do:** fingerprint the important inputs and invalidate the cache when any of them changes.
 
-## 7. Do not let joins silently throw rows away
+## 8. Do not let joins silently throw rows away
 
 **Mistake:** joining two tables and accepting that some rows disappear.
 
@@ -62,15 +70,15 @@ The goal is simple: **other people should not have to lose time repeating the sa
 
 **What to do:** compare exact ID sets first, then join one-to-one.
 
-## 8. A target can cross a time split
+## 9. A target can cross a time split
 
 **Mistake:** putting a row in training because the decision happened before the cutoff, even though the future outcome used for its label finishes after the cutoff.
 
 **Why it is bad:** training can contain information from validation time.
 
-**What to do:** track when the full outcome ends and remove rows that cross the boundary.
+**What to do:** track when the full outcome ends and remove rows that cross the boundary when required.
 
-## 9. Fit preprocessing on training data only
+## 10. Fit preprocessing on training data only
 
 **Mistake:** calculating normalization or other statistics using validation/test data too.
 
@@ -78,7 +86,7 @@ The goal is simple: **other people should not have to lose time repeating the sa
 
 **What to do:** fit preprocessing once on training and reuse it unchanged.
 
-## 10. Every feature has a time when it becomes available
+## 11. Every feature has a time when it becomes available
 
 **Mistake:** assuming that because a row is stamped `10:00`, every value inside it was already known at `10:00`.
 
@@ -90,7 +98,7 @@ The goal is simple: **other people should not have to lose time repeating the sa
 available_at <= decision_time
 ```
 
-## 11. Future-only audit information must not become a model input
+## 12. Future-only audit information must not become a model input
 
 **Mistake:** creating a useful label after seeing the future, then accidentally feeding it back into the model.
 
@@ -98,15 +106,15 @@ available_at <= decision_time
 
 **What to do:** mark future-derived fields as audit-only and block them from model inputs.
 
-## 12. Documentation must match what the code really does
+## 13. Documentation must match what the code really does
 
 **Mistake:** the document says the system uses three filters, while the code actually uses only one.
 
 **Why it is bad:** people think they are testing a different system.
 
-**What to do:** keep the written rules and executed rules synchronized.
+**What to do:** keep written and executed rules synchronized.
 
-## 13. Protect the final test set
+## 14. Protect the final test set
 
 **Mistake:** looking at the final test period again and again while changing the model.
 
@@ -114,7 +122,7 @@ available_at <= decision_time
 
 **What to do:** make choices on train/validation first. Open the final holdout only when the experiment is frozen.
 
-## 14. Cheap tests come before expensive GPU jobs
+## 15. Cheap tests come before expensive GPU jobs
 
 **Mistake:** starting a large multimodal run before checking the data and simple baseline.
 
@@ -130,15 +138,15 @@ simple baseline
  -> only then full expensive run
 ```
 
-## 15. A visual model must add value, not just look impressive
+## 16. A visual model must add value, not just look impressive
 
 **Mistake:** continuing VLM/fine-tuning work because the visual model has some signal.
 
-**Why it is bad:** a simple numerical model may already contain the same useful information.
+**Why it is bad:** a simpler numerical model may already contain the same useful information.
 
 **What to do:** compare both models on the same rows and ask whether the visual model adds something extra.
 
-## 16. Better prediction does not automatically mean better trading
+## 17. Better prediction does not automatically mean better trading
 
 **Mistake:** saying “the model score improved, so the strategy is profitable”.
 
@@ -146,7 +154,7 @@ simple baseline
 
 **What to do:** report predictive metrics and economic evaluation separately.
 
-## 17. If event order is unknown, keep it unknown
+## 18. If event order is unknown, keep it unknown
 
 **Mistake:** one OHLC bar touches two important levels and the code guesses which happened first.
 
@@ -154,15 +162,15 @@ simple baseline
 
 **What to do:** mark the order as unknown unless finer data proves it.
 
-## 18. Timeframe aggregation depends on real market sessions
+## 19. Timeframe aggregation depends on real market sessions
 
 **Mistake:** building higher timeframes only with simple UTC buckets while ignoring provider sessions, holidays, pauses or daylight-saving changes.
 
-**Why it is bad:** your derived bars may not match what the real system saw.
+**Why it is bad:** derived bars may not match what the real system saw.
 
-**What to do:** document the provider/session rules. If you do not know them, say the aggregation is not certified.
+**What to do:** document provider/session rules. If they are unknown, say the aggregation is not certified.
 
-## 19. Synthetic tests are useful, but they are not live proof
+## 20. Synthetic tests are useful, but they are not live proof
 
 **Mistake:** a fake restart/DST test passes, so we claim the live provider is proven safe.
 
@@ -176,15 +184,15 @@ historical reproduction
 live read-only validation
 ```
 
-## 20. Sampling rules can change the result
+## 21. Sampling rules can change the result
 
 **Mistake:** many possible events exist, but one is selected without documenting how.
 
 **Why it is bad:** performance may depend on that hidden choice.
 
-**What to do:** record the sampling rule and test alternatives.
+**What to do:** record the sampling rule and test alternatives when appropriate.
 
-## 21. A wrong idea that gets disproved is still useful
+## 22. A wrong idea that gets disproved is still useful
 
 **Mistake:** hiding failed hypotheses and keeping only successful ones.
 
@@ -192,17 +200,87 @@ live read-only validation
 
 **What to do:** record what was believed, how it was tested, and what the test proved instead.
 
+## 23. Adding future data must not rewrite old deterministic records
+
+**Mistake:** running the deterministic system on a longer history changes records that were already produced for the earlier history.
+
+**Why it is bad:** the system may be using future information, unstable indexing or hidden state.
+
+**What to do:** perform a prefix-invariance test. Old canonical IDs and values must remain unchanged when later data is appended.
+
+## 24. Compare the inputs before comparing the outputs
+
+**Mistake:** two runs disagree and we immediately blame the model, without checking whether the source data was identical.
+
+**Why it is bad:** same row count and same date range do not prove same content.
+
+**What to do:** compare source fingerprints/hashes first. Different input = `NOT_COMPARABLE` until the difference is understood.
+
+## 25. Value differences and dtype/schema differences are not the same problem
+
+**Mistake:** a strict table comparison fails and we immediately conclude the system changed its decision logic.
+
+**Why it is bad:** values may be identical while timestamp encoding, dtype or schema representation differs.
+
+**What to do:** report separately:
+
+```text
+value differences
+schema differences
+dtype / representation differences
+```
+
+## 26. A bridge should transport the frozen result, not rebuild the strategy
+
+**Mistake:** connecting an EA or external process by rewriting the deterministic logic a second time inside the bridge.
+
+**Why it is bad:** the two implementations can slowly diverge and give different answers.
+
+**What to do:** freeze one canonical core and let the bridge validate and transport its output.
+
+## 27. Do not invent missing optional information
+
+**Mistake:** an optional field is not available, so code creates a guessed/default value to complete the record.
+
+**Why it is bad:** invented information can look like a real observation.
+
+**What to do:** unavailable stays unavailable; future values are rejected.
+
+## 28. Do not create a new sub-pipeline for every experiment
+
+**Mistake:** each new model, audit or idea becomes another operational pipeline.
+
+**Why it is bad:** the project becomes impossible to understand and the real objective gets lost.
+
+**What to do:** keep one operational pipeline:
+
+```text
+ACQUIRE -> EXTRACT -> DECIDE -> APPLY
+```
+
+Then ask which stage a new component improves or validates. If it improves none, keep it outside the operational path.
+
+## 29. A checkpoint is not automatically a blocker
+
+**Mistake:** stopping after every report, commit or safe verification even when the next approved step is already clear.
+
+**Why it is bad:** work becomes fragmented without adding safety.
+
+**What to do:** continue through predefined, read-only/reversible steps. Stop when a real semantic, safety, holdout, execution or destructive-action decision is required.
+
 ## Before a long experiment: simple checklist
 
-Before spending a lot of time or GPU money, check:
+Before spending significant time or GPU money, check:
 
-- Are the exact record IDs frozen?
+- Is the four-stage operational pipeline clear?
+- Are exact record IDs frozen where needed?
 - Are source hashes recorded?
-- Is the target/state meaning written down?
+- Is each field's meaning written down?
 - Does every feature exist by decision time?
 - Are time splits clean?
 - Was preprocessing fitted only on training?
-- Did a simple deterministic baseline run?
+- Did a deterministic baseline run?
+- Has the deterministic core passed replay/prefix checks?
 - Did a simple numerical baseline run?
 - Can an interrupted job resume safely?
 - Does changing one dependency invalidate old cache?

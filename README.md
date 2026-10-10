@@ -1,6 +1,6 @@
 # Multimodal Market AI
 
-**Add AI to an existing trading bot, or build a simple deterministic system from scratch and improve it step by step.**
+**Add AI to an existing trading bot, or build a deterministic market system from scratch and improve it step by step.**
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
@@ -8,21 +8,52 @@
 
 ## In one sentence
 
-This repository helps you **connect market data, simple rules, existing bots and AI without mixing everything together or accidentally using future information**.
-
-You can use it in two ways:
-
-```text
-A) I already have a bot
-   my bot -> this framework -> tests / models / AI
-
-B) I do not have a bot
-   market data -> my simple rules -> deterministic model -> tests / models / AI
-```
+This repository helps you **acquire market data, extract causal information, make a decision and safely pass that decision onward** without mixing strategy logic, AI, evaluation and execution into one opaque block.
 
 You do not need to publish your private strategy.
 
 > This is a research and engineering framework. It is not a ready-made trading strategy, a signal service or a promise of profit.
+
+## The project now uses one simple operational pipeline
+
+Everything fits inside four jobs:
+
+```text
+1. ACQUIRE
+   get the market case that really exists now
+        |
+        v
+2. EXTRACT
+   calculate or import the useful information
+        |
+        v
+3. DECIDE
+   choose what to do now
+        |
+        v
+4. APPLY
+   send the decision to a safe output / bridge / execution layer
+```
+
+For a trading system, a public example of the decision stage is:
+
+```text
+LONG
+SHORT
+WAIT
+```
+
+`WAIT` means: do not perform LONG or SHORT yet.
+
+This is different from:
+
+- one small signal saying “I have no opinion”;
+- a private internal state that may persist for longer;
+- a missing/unavailable value.
+
+Do not automatically combine those ideas into one variable.
+
+Read: [Operational pipeline](docs/OPERATIONAL_PIPELINE.md).
 
 ## If you already have a bot
 
@@ -30,79 +61,70 @@ You do **not** need to rewrite thousands of lines of code.
 
 Your existing EA, Python bot or backtester can keep doing what it already does.
 
-It can export a small row such as:
+It can export a small record such as:
 
 ```text
 event ID
 exact time
 symbol
-its own state or features
+its own state / values
 ```
 
-This project can then add market context that was really available at that moment, run tests, build datasets and compare models.
-
-Simple picture:
+Then this project can attach only market context that really existed at that time, run audits, build datasets and compare models.
 
 ```text
-existing EA / bot
-      |
-      v
-small integration adapter
-      |
-      +--> causal market data
-      +--> extra numerical context
-      +--> optional chart / visual AI
-      |
-      v
-simple model or AI model
-      |
-      v
-score / ranking / analysis / read-only live test
+YOUR BOT
+   |
+   v
+small adapter / bridge
+   |
+   +--> causal market data
+   +--> optional extra context
+   +--> optional model / AI
+   |
+   v
+read-only result / score / report
 ```
+
+The bridge should transport the result. It should not secretly rebuild a second copy of your strategy.
 
 Start here: [Integrating an existing bot or EA](docs/INTEGRATING_EXISTING_BOTS.md).
 
 ## If you do not have a bot yet
 
-You can build a simple system directly inside this repository.
-
-The easiest first step is a **deterministic model**.
+You can build a deterministic system directly inside this repository.
 
 “Deterministic” means:
 
 > Same data + same rules = same answer.
 
-A simple system may use several small signals.
-
-For example:
+A simple public example can combine several small signals:
 
 ```text
-rule A: trend
-rule B: momentum
-rule C: structure
+rule A: trend clue
+rule B: momentum clue
+rule C: structure clue
         |
         v
 majority / unanimous / weighted vote
         |
         v
-final deterministic signal
+deterministic result
 ```
 
-Every rule is replaceable. You can remove one rule, add another, recalculate the model and compare the result.
+Every rule is replaceable.
 
-Read the simple explanation: [Multi-signal and deterministic model](docs/MULTI_SIGNAL_AND_DETERMINISTIC_MODEL.md).
+Read: [Multi-signal and deterministic model](docs/MULTI_SIGNAL_AND_DETERMINISTIC_MODEL.md).
 
-Run the public example:
+Run:
 
 ```bash
 python examples/deterministic_multi_signal.py
 ```
 
-## What is a multi-signal system?
+## A multi-signal system, explained simply
 
 A **signal** is one clue.
-
-A **multi-signal system** uses several clues instead of trusting only one.
 
 Imagine three people looking at the weather:
 
@@ -110,87 +132,119 @@ Imagine three people looking at the weather:
 - one feels strong wind;
 - one hears thunder.
 
-Each clue says something. The final decision uses the clues together.
-
-A market system can do the same thing with independent rules.
+Each clue says something. A final rule combines the clues.
 
 In the public helper:
 
-- `+1` means a rule points one way;
-- `-1` means it points the other way;
-- `0` means that rule has no opinion right now.
+- `+1` = this rule points one way;
+- `-1` = this rule points the other way;
+- `0` = this rule is not voting right now.
 
-The project can combine these signals with:
+The combiner supports:
 
-- **majority** — more votes win;
+- **majority** — more active votes win;
 - **unanimous** — all active votes must agree;
 - **weighted** — some rules count more than others.
 
-The exact indicators and rules are yours.
+A final `det_signal = 0` means the combiner did not choose either side. A trading application may map that result to `WAIT`; it is not automatically a third persistent market direction.
 
-## Why build a deterministic model before AI?
+## Deterministic first, AI later
 
-Because AI should have something simple to beat.
+AI should have something simple and reproducible to beat.
 
-A good order is:
+The order is:
 
 ```text
-1. simple rules
-2. deterministic model
-3. simple statistical model
-4. optional multimodal / visual AI
-5. compare them on the same data
+build the deterministic/data path
+        |
+        v
+prove it is causal and reproducible
+        |
+        v
+freeze that version
+        |
+        v
+compare simple and complex models fairly
 ```
 
-If a simple model works as well as a much larger AI, the larger AI may not be worth the cost.
+A deterministic system is not considered stable only because it ran once.
 
-## What this project can do
+The public freeze protocol checks ideas such as:
 
-The public code already includes tools for:
+- adding future data must not rewrite old historical records;
+- isolated runs should match sequential runs;
+- inputs must be fingerprinted before outputs are compared;
+- value changes must be separated from dtype/schema differences;
+- unavailable fields must not be invented;
+- the frozen core should be reused unchanged during model comparison.
 
-- joining market data to the exact time of a decision;
-- building higher timeframes without looking into the future;
-- checking that a feature really existed when the decision was made;
-- keeping train, validation and test periods separate;
-- detecting missing, duplicate or changed records;
-- sealing files with hashes so stale results are not reused by mistake;
-- resuming long jobs safely;
-- connecting an existing bot to the research pipeline;
-- combining simple directional signals into a deterministic model;
-- comparing simple baselines with more expensive AI models;
-- testing live data in read-only mode before execution is ever considered.
+Read: [Deterministic freeze protocol](docs/DETERMINISTIC_FREEZE_PROTOCOL.md).
 
-## A simple full path
+## Research tools support the pipeline — they are not extra pipelines
 
-A complete experiment can look like this:
+The repository also contains:
+
+- causal timestamp checks;
+- higher-timeframe construction without future bars;
+- feature-availability audits;
+- exact record-ID checks;
+- artifact hashes and seals;
+- purged train/validation/test splitting;
+- resumable caches;
+- deterministic candidate manifests;
+- simple-model baselines;
+- optional visual / multimodal experiments;
+- read-only forward-validation design.
+
+They support the four operational jobs:
 
 ```text
-market data
+ACQUIRE -> EXTRACT -> DECIDE -> APPLY
+```
+
+A VLM, gradient-boosting model or other AI model is a candidate component, not a mandatory new stage.
+
+## Fair model comparison
+
+Do not choose the final model family first.
+
+Once the pipeline and deterministic core are frozen, compare candidate models using the same:
+
+- dataset;
+- time split;
+- inputs;
+- target;
+- metrics;
+- deterministic/core pipeline.
+
+If a more complex model does not improve the result, it does not need to be used.
+
+## A simple full research path
+
+```text
+ACQUIRE
    |
    v
-simple signals or existing bot events
+EXTRACT
    |
    v
-deterministic model / candidate list
+DECIDE
    |
    v
+APPLY read-only
+
+Around those four steps:
+
 causal audit
-   |
-   v
-train / validation / test split
-   |
-   +--> simple numerical baseline
-   |
-   +--> optional visual / multimodal model
-   |
-   v
-fair comparison on the same rows
-   |
-   v
-read-only live validation
+record IDs + hashes
+train / validation / test
+simple baseline
+optional AI / VLM
+fair comparison
+forward validation
 ```
 
-Nothing forces you to use every step.
+This keeps the operational system simple while still allowing serious research.
 
 ## Existing-bot example
 
@@ -221,9 +275,9 @@ joined = attach_causal_market_context(bot_events, bars)
 print(joined)
 ```
 
-The event at `10:07` can see the bar closed at `10:05`. It cannot see the bar that closes at `10:10`, because that bar was still in the future at `10:07`.
+The event at `10:07` can use the bar closed at `10:05`. It cannot use the bar that closes at `10:10`.
 
-## Deterministic model example
+## Deterministic example
 
 ```python
 import pandas as pd
@@ -243,17 +297,13 @@ result = combine_directional_signals(
     ["trend", "momentum", "structure"],
     policy="majority",
 )
-
-print(result)
 ```
 
-You can replace `trend`, `momentum` and `structure` with your own rules. The rest of the pipeline can stay the same.
+Replace the three example rules with your own rules. The rest of the project can stay the same.
 
-## What does “causal” mean?
+## What “causal” means
 
 It means **do not use information from the future**.
-
-Example:
 
 ```text
 Decision time: 10:07
@@ -261,68 +311,41 @@ Bar closed at: 10:05  -> allowed
 Bar closed at: 10:10  -> not allowed yet
 ```
 
-This sounds obvious, but it is one of the easiest mistakes to make when working with historical data.
+## What “read-only” means
 
-## What does “baseline” mean?
+A read-only consumer watches data and records what the system would say, but it cannot place or modify orders.
 
-A **baseline** is a simple model used as a reference.
-
-Example:
-
-```text
-simple deterministic model = baseline A
-simple numerical model     = baseline B
-large visual AI            = model C
-```
-
-If model C does not improve on A or B, more complexity may not help.
-
-## What does “read-only live test” mean?
-
-The model watches live data and writes its answer, but it **cannot place or change orders**.
-
-This lets you check:
+Check:
 
 - timestamps;
 - missing data;
-- restarts;
 - duplicate events;
+- restart behavior;
+- historical revisions;
 - latency;
-- whether live behavior matches the offline tests.
+- whether live outputs match the frozen offline logic.
 
-Only after that should a separate project decide whether a model output may affect execution.
+Read-only validation is an engineering proof. It is not proof of profitability.
 
-## Mistakes we already made so you do not have to repeat them
+## Mistakes already documented
 
-The repository also records errors found during internal research.
+The repository records general mistakes found during internal research so other people do not need to repeat them.
 
 Examples:
 
-- mixing a long-lived state with a short-lived confirmation;
-- treating missing information like a real signal;
-- comparing two columns that had similar names but different meanings;
-- reusing an old cache after one of its inputs changed;
-- training preprocessing on validation/test data;
-- letting a future outcome cross a time split;
-- using audit-only future information as a model feature;
-- checking the final test set too many times;
-- spending GPU time before testing a cheap baseline;
-- assuming a visual model is useful just because it contains some signal.
+- confusing a persistent state with a temporary confirmation;
+- confusing missing data with a real neutral answer;
+- treating a rule-level `0` as the same thing as final `WAIT`;
+- comparing fields with similar names but different meanings;
+- reusing stale caches;
+- allowing future outcomes to cross a time split;
+- opening the final holdout repeatedly;
+- running expensive models before a cheap baseline;
+- adding new models or sub-pipelines before the basic pipeline is complete;
+- comparing outputs before confirming the inputs are identical;
+- allowing future-appended data to rewrite old deterministic records.
 
-See [Failure modes and lessons learned](docs/LESSONS_LEARNED.md).
-
-## Research results we can share safely
-
-Internal work has shown several general lessons:
-
-- fixing data or target definitions can change earlier conclusions;
-- simple numerical models can contain useful out-of-sample information;
-- a visual representation can contain information but still add no useful value beyond a simpler model;
-- better prediction metrics do not automatically mean a profitable system;
-- expensive model work should be resumable and tied to exact data IDs;
-- post-decision or trade-management questions can be studied separately from entry questions.
-
-Private strategy rules, private datasets and private economic results are not published here.
+See: [Lessons learned](docs/LESSONS_LEARNED.md).
 
 ## Quick start
 
@@ -352,37 +375,43 @@ python examples\deterministic_multi_signal.py
 python examples\existing_bot_integration.py
 ```
 
-## Main rules of the project
+## Main rules
 
-- **Bring your own strategy** — or build a simple public deterministic one here.
+- **One operational pipeline** — acquire, extract, decide, apply.
+- **Bring your own strategy** — or build a deterministic one here.
 - **Do not look into the future** — every input must exist at decision time.
-- **Keep pieces separate** — data, signals, labels, models and evaluation should not be mixed together.
-- **Change one piece at a time** — then measure what changed.
+- **Keep meanings separate** — signal abstention, WAIT, missing data and internal state are different concepts.
+- **Freeze before final comparison** — stable data path and deterministic core first.
+- **Compare models fairly** — same rows, split, inputs, target and metrics.
 - **Simple before expensive** — baseline first, GPU later.
-- **Fail closed** — bad or missing data should stop the pipeline instead of being silently ignored.
-- **AI must earn its place** — if it adds nothing, do not force it into the system.
+- **Fail closed** — missing required information should stop or defer the step, not be invented.
+- **Bridge, do not duplicate** — external integration should transport a frozen result rather than reimplement the strategy.
+- **AI must earn its place** — if it adds nothing useful, leave it out.
 
 ## Project status
 
-**Early alpha.** The causal core, deterministic combiner and existing-bot integration pieces are usable research building blocks. More public data connectors, model adapters and complete end-to-end examples are still being added.
+**Early alpha.** The public deterministic combiner, causal helpers, integration adapter and research-safety primitives are usable building blocks. The four-stage operational pipeline and deterministic-freeze protocol are now documented; full public MT4/MT5 bridging, forward journals and model adapters remain ongoing work.
 
 ## Documentation
 
-Start with these three pages:
+Start here:
 
-1. [Multi-signal and deterministic model](docs/MULTI_SIGNAL_AND_DETERMINISTIC_MODEL.md)
-2. [Integrating an existing bot or EA](docs/INTEGRATING_EXISTING_BOTS.md)
-3. [Failure modes and lessons learned](docs/LESSONS_LEARNED.md)
+1. [Operational pipeline](docs/OPERATIONAL_PIPELINE.md)
+2. [Multi-signal and deterministic model](docs/MULTI_SIGNAL_AND_DETERMINISTIC_MODEL.md)
+3. [Deterministic freeze protocol](docs/DETERMINISTIC_FREEZE_PROTOCOL.md)
+4. [Integrating an existing bot or EA](docs/INTEGRATING_EXISTING_BOTS.md)
+5. [Lessons learned](docs/LESSONS_LEARNED.md)
 
 More technical material:
 
-- [Project status and research evidence](docs/PROJECT_STATUS.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Public research workflow](docs/PUBLIC_WORKFLOW_SYNC.md)
+- [Project status](docs/PROJECT_STATUS.md)
 - [Historical data sources](docs/DATA_SOURCES.md)
 - [Model adapters](docs/MODEL_ADAPTERS.md)
 - [Fine-tuning guide](docs/FINETUNING_GUIDE.md)
-- [Architecture](docs/ARCHITECTURE.md)
 - [Example trading-system patterns](docs/TRADING_SYSTEM_PATTERNS.md)
-- [Reference research environment](docs/RESEARCH_ENVIRONMENT.md)
+- [Experiment governance](docs/EXPERIMENT_GOVERNANCE.md)
 - [Benchmarking](docs/BENCHMARKING.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Repository governance](docs/REPOSITORY_GOVERNANCE.md)

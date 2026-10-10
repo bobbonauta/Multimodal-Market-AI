@@ -1,139 +1,224 @@
 # Architecture
 
-Multimodal Market AI separates exact market computation from learned perception, learned decision-making and later economic evaluation.
+Multimodal Market AI uses one operational pipeline with four stages:
 
-The public architecture is strategy-agnostic. Private systems may plug into the interfaces without publishing the rules that define their setups.
+```text
+ACQUIRE -> EXTRACT -> DECIDE -> APPLY
+```
 
-## Layer 1 — Market data
+Everything else in the repository exists to implement, test or validate one of those four jobs.
 
-Input data may come from Forex, indices, commodities, equities, crypto or other time-series sources. The public core assumes timestamps have explicit semantics and strongly prefers timezone-aware bar-close timestamps.
+The project is strategy-agnostic. A private system can plug into these stages without publishing the rules that define its strategy.
 
-Raw/provider data should be preserved or journaled with enough provenance to reproduce later transformations.
+## Stage 1 — Acquire
 
-## Layer 2 — Deterministic / numerical processing
+Purpose: obtain the market case that was actually available at the decision time.
 
-This layer is responsible for calculations that should not depend on a generative model:
+Possible inputs include:
+
+- provider or broker data;
+- closed bars;
+- synchronized higher timeframes;
+- events exported by an existing EA or Python bot;
+- related-market context.
+
+Requirements:
+
+- timestamp semantics must be explicit;
+- future bars are forbidden;
+- raw/provider observations should preserve enough provenance to reproduce later transformations;
+- history revisions should be detected or versioned, not silently rewritten.
+
+## Stage 2 — Extract
+
+Purpose: convert the acquired case into useful information.
+
+This stage can contain deterministic or numerical processing such as:
 
 - timeframe aggregation;
 - feature calculation;
-- pivots / sequences / structural facts;
-- timestamp availability;
+- structural facts;
+- relative-strength calculations;
+- multi-signal rules;
 - event gating;
-- deterministic validation;
-- causal alignment.
+- outputs imported from an existing private bot;
+- optional visual/multimodal perception.
 
-The same input and versioned configuration should produce the same output.
+Every extracted field used by a decision must have a known availability time.
 
-## Layer 2.5 — Candidate gate and immutable manifest
+The same input plus the same deterministic version/configuration should produce the same canonical output.
 
-Before expensive model work, a deterministic selector may identify a smaller set of candidate events.
+### Deterministic core
 
-The selector must be auditable independently from the downstream target.
+The deterministic core should be auditable independently from later model evaluation.
 
-The public core provides reusable artifact sealing, exact record-ID comparison and one-to-one joins, purged temporal splitting, and a feature-level causal input audit. A selector-specific manifest and full automated candidate-audit report remain separate work.
+Before it is treated as frozen, test at least:
 
-A candidate manifest should record enough information to prove that:
+- prefix invariance: adding later data does not rewrite old canonical records;
+- isolated execution: a fresh process reproduces the same result;
+- stable IDs and required schema;
+- source/input fingerprints;
+- unavailable values remain unavailable rather than being invented.
 
-- every selector input existed at `decision_ts`;
-- no future/outcome field was used to choose the candidate;
-- the active temporal split was derived from real timestamps;
-- duplicate candidate keys were checked;
-- source and selector revisions are known;
-- the final candidate artifact has a reproducible hash.
+See [Deterministic freeze protocol](DETERMINISTIC_FREEZE_PROTOCOL.md).
 
-The candidate set should be frozen before future-outcome labels are computed or exposed to the downstream experiment.
+### Optional visual/multimodal extraction
 
-See [Public workflow synchronization](PUBLIC_WORKFLOW_SYNC.md).
+Visual AI is optional, not a mandatory pipeline stage.
 
-## Layer 3 — Visual / multimodal processing
+A VLM may:
 
-This layer is intended for tasks that are difficult to encode as exact rules:
+- emit a structured perception result; or
+- act as a frozen feature extractor.
 
-- chart structure recognition;
-- global visual context;
-- ambiguous or tolerant relationships;
-- pattern description;
-- qualitative state extraction.
+Model revision, renderer version, prompt/schema and candidate/input provenance should be recorded.
 
-Model adapters should preserve model/version/prompt/renderer provenance.
+If a visual model adds no useful information beyond the deterministic/numerical baseline, it does not need to be used.
 
-Two broad modes are supported conceptually:
+## Stage 3 — Decide
 
-1. **direct inference** — the model emits a structured state or description;
-2. **frozen feature extraction** — the model remains frozen and its hidden representation is cached for downstream models.
+Purpose: turn extracted information into the action to take now.
 
-Frozen feature caches must remain linked to the exact candidate manifest, model revision, processor/prompt and renderer version that produced them.
+A public trading example is:
 
-The public core also provides generic resumable chunk-cache primitives with atomic writes, dependency fingerprints, exact chunk-ID checks and completeness verification. A frozen-feature-specific cache adapter is still a separate milestone.
+```text
+LONG | SHORT | WAIT
+```
 
-## Layer 4 — Typed market state
+Other applications can use different names.
 
-The numerical and multimodal branches meet in a compact intermediate representation.
+`WAIT` is a decision-layer concept: do not perform either action yet.
 
-A typed state should make it possible to:
+It must not automatically be confused with:
 
-- compare different VLM families without rewriting the decision layer;
-- cache expensive visual interpretation;
-- audit exactly which information reached a decision model;
-- separate perception quality from economic outcomes.
+- a rule-level `0` meaning “this one rule did not vote”;
+- missing/unavailable information;
+- a longer-lived internal state maintained by a private system.
 
-`MarketState` in the initial public release is intentionally minimal. The schema will grow through backwards-compatible typed extensions where practical.
+Decision logic may be:
 
-## Layer 5 — Decision models
+- deterministic;
+- logistic regression;
+- gradient boosting;
+- MLP or sequence model;
+- compact language/reasoning model;
+- another replaceable classifier/regressor.
 
-Decision models may be simple or complex: logistic regression, gradient boosting, MLPs, sequence models, small language models, or task-specific heads.
+The framework does not prescribe the final model family.
 
-The public project does not prescribe a trading strategy. A decision layer should consume only information available at the decision timestamp.
+### Model comparison happens after the pipeline is stable
 
-A downstream supervised head may join frozen features with separately computed labels, but the lineage between candidate selection, model input and future-dependent supervision must remain explicit.
+Candidate models should be compared using the same:
 
-## Layer 6 — Evaluation
+- dataset;
+- split;
+- allowed inputs;
+- target semantics;
+- metrics;
+- frozen deterministic/core pipeline.
 
-Prediction quality and economic quality are different questions.
+A more complex model wins only if it demonstrates a real, robust improvement.
 
-The evaluation stack should support at least:
+## Stage 4 — Apply
 
-- classification/regression metrics;
-- per-symbol and per-time-period breakdowns;
-- expectancy in R;
-- profit factor;
-- average win / average loss;
-- maximum drawdown in R;
-- return-distribution tails;
-- costs/slippage when the user has valid execution data.
+Purpose: pass the decision to the outside world.
 
-A system with a low win rate can still have positive expectancy when winners are materially larger than losers. For that reason, win rate alone must never be treated as a profitability verdict.
+The normal first implementation should be read-only:
 
-## Layer 7 — Read-only forward validation
+```text
+decision -> file / database / log / display / external consumer
+```
 
-Before any execution-capable integration, the same causal pipeline should be testable as a read-only observer against a live or broker-specific feed.
+A bridge should transport the decision and its provenance. It should not implement a second independent copy of the strategy.
+
+If an optional field is absent, preserve that absence. If a field is only available in the future, reject it.
+
+Execution-capable integration is a separate safety boundary and is not implied by the existence of a read-only bridge.
+
+## Research and validation plane
+
+Research tools surround the operational pipeline instead of becoming extra operational stages.
+
+```text
+                    provenance / hashes
+                           |
+                           v
+ACQUIRE -> EXTRACT -> DECIDE -> APPLY
+   |          |          |        |
+ timing    replay /    splits /  read-only
+ audit      freeze      metrics   forward
+   |          |          |        |
+   +----------+----------+--------+
+              evaluation
+```
+
+### Candidate manifests
+
+A deterministic candidate selector may create a smaller research population before expensive model work.
+
+A manifest should record:
+
+- unique candidate IDs;
+- decision timestamps;
+- source revision/hash;
+- selector revision;
+- causal-input audit;
+- content hash.
+
+Candidate selection must not use future-dependent target/outcome information.
+
+### Train / validation / test
+
+For supervised experiments:
+
+- actual timestamps define the split;
+- a target whose outcome ends after a boundary must be purged from the earlier partition when required;
+- fitted preprocessing is learned from training rows only;
+- the final holdout is protected until the experiment contract is frozen.
+
+### Caches and artifacts
+
+Derived artifacts should be reusable only when their dependencies still match.
+
+Useful controls include:
+
+- source hashes;
+- model/config fingerprints;
+- exact record IDs;
+- completeness flags;
+- atomic writes;
+- fail-closed behavior for corrupt or incomplete sidecars.
+
+## Read-only forward validation
+
+Before execution-capable integration, the same frozen logic should be observable on live or broker-specific data without order functions.
 
 A forward observer should:
 
-- consume only completed observations according to the source timestamp semantics;
-- journal raw observations separately from derived decisions/model outputs;
+- consume only completed observations;
+- separate raw observations from derived decisions;
 - deduplicate repeated polling;
-- recover safely after restarts;
-- detect or explicitly version revisions to already-seen history;
-- preserve enough context that a restart does not silently change later decisions;
-- emit sanitized audit evidence without exposing account or private-strategy data.
+- recover safely after restart;
+- detect history revisions;
+- preserve enough provenance to compare live output with the frozen offline core.
 
-This layer validates engineering and causality behavior. It does not imply order execution or profitability.
+Read-only forward validation proves engineering behavior. It does not prove profitability.
 
 ## Causality contract
 
 For every decision timestamp `t`:
 
-1. all input bars must have close timestamps `<= t`;
-2. a higher-timeframe bar can be used only after that higher-timeframe bar is closed;
-3. target/outcome fields are never allowed in model input;
-4. train/validation/test splits must respect time;
-5. any fitted preprocessing must be trained only on the training side of the split;
-6. cached model outputs/features must be keyed by enough provenance to prevent silent reuse after input/model/prompt changes;
-7. deterministic candidate selection must not use future-dependent labels or prices;
-8. the candidate manifest should be frozen before future-outcome supervision is generated for that experiment;
-9. raw forward observations and derived decisions should remain semantically separate;
-10. previously observed market history must not be silently rewritten without provenance.
-11. preprocessing statistics must be fitted only on training rows and then applied unchanged to validation and test rows.
+1. every input used by the decision must have been available by `t`;
+2. a higher-timeframe bar can be used only after it is closed;
+3. future/outcome fields are forbidden from model input;
+4. candidate selection must not use future-dependent labels;
+5. train/validation/test separation follows real timestamps;
+6. preprocessing is fitted on training only;
+7. cached outputs are bound to enough provenance to prevent stale reuse;
+8. adding later data must not silently rewrite earlier canonical deterministic records;
+9. required record IDs and schema are explicit;
+10. missing optional data remains missing rather than being invented;
+11. raw forward observations and derived decisions stay semantically separate;
+12. input mismatch is reported as non-comparable before output differences are interpreted.
 
-Violating this contract is considered a correctness bug, not merely a modeling choice.
+Violating this contract is a correctness bug, not merely a modeling choice.
