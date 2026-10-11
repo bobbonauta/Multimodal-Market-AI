@@ -32,7 +32,8 @@ The repository includes:
 - the four-stage operational-pipeline specification;
 - the deterministic freeze/replay protocol;
 - documentation for fine-tuning, multimodal models and read-only forward validation;
-- a list of mistakes found during internal research so other users can avoid them.
+- a list of mistakes found during internal research so other users can avoid them;
+- published aggregate results from a completed multimodal model arena, including holdout quality, compute time, VRAM/cost lessons and stopped runs.
 
 ## Two ways to start
 
@@ -111,7 +112,11 @@ These concepts are deliberately documented separately so one value does not acci
 
 ## What internal research has taught us
 
-Private research is used to extract general engineering lessons. Private strategy rules and private results are not copied into this repository.
+Private research is used to extract general engineering lessons. Private strategy rules are not copied into this repository.
+
+Aggregate model metrics can be published when they do not expose the strategy itself. The completed public-safe arena summary is available here:
+
+- [Multimodal model arena — public results](MODEL_ARENA_RESULTS.md)
 
 General lessons that are safe to share include:
 
@@ -126,6 +131,18 @@ A VLM can contain signal without improving a stronger numerical baseline.
 ### Better prediction is not automatically economic edge
 
 Predictive quality and economic evaluation are different questions.
+
+### Aggregate metrics can hide failure
+
+A model can show a respectable mean score while failing one of the underlying subtasks. Report per-task/per-group metrics and collapse checks alongside the mean.
+
+### Bigger is not automatically better
+
+Model size alone did not rank quality in the completed arena. Runtime, VRAM, cost and task-specific quality all matter.
+
+### Compute cost must use real job time
+
+A cheaper GPU per hour can still cost more for the complete job if it is much slower. Measure total runtime and total cost.
 
 ### Input identity matters
 
@@ -146,6 +163,7 @@ This repository does not claim that:
 - the public framework is profitable;
 - one model family is best for all markets;
 - visual AI always beats numerical models;
+- the highest arena score is automatically the best deployment choice;
 - a deterministic core is certified for every user simply because the protocol is documented;
 - every private research result reproduces on public data;
 - every documented design already has a complete public implementation.
