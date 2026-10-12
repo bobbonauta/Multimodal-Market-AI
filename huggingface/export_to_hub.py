@@ -8,6 +8,7 @@ import tempfile
 from pathlib import Path
 
 from huggingface_hub import HfApi
+from static_page import build_static_space
 
 from multimodal_market_ai.synthetic_demo import write_demo
 
@@ -18,6 +19,15 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-name", default="multimodal-market-ai-synthetic")
     parser.add_argument("--space-name", default="multimodal-market-ai-demo")
+    parser.add_argument(
+        "--space-type",
+        choices=("static", "gradio"),
+        default="static",
+        help=(
+            "static: plain HTML page, free on every account. "
+            "gradio: interactive app, needs a Hugging Face PRO subscription for CPU hosting."
+        ),
+    )
     parser.add_argument("--namespace")
     parser.add_argument("--private", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
@@ -62,6 +72,18 @@ def prepare_space(destination: Path) -> None:
     synthetic_path.write_text(text, encoding="utf-8")
 
 
+def prepare_static_space(destination: Path, dataset_id: str) -> None:
+    """Build the HTML-only Space from a fresh run of the synthetic demo."""
+    with tempfile.TemporaryDirectory(prefix="mma-hf-demo-") as demo:
+        demo_dir = Path(demo)
+        write_demo(demo_dir)
+        build_static_space(
+            demo_dir,
+            destination,
+            dataset_url=f"https://huggingface.co/datasets/{dataset_id}",
+        )
+
+
 def main() -> None:
     args = parse_args()
     api = HfApi()
@@ -79,7 +101,10 @@ def main() -> None:
         space_dir = temp_root / "space"
 
         prepare_dataset(dataset_dir)
-        prepare_space(space_dir)
+        if args.space_type == "static":
+            prepare_static_space(space_dir, dataset_id)
+        else:
+            prepare_space(space_dir)
 
         if args.dry_run:
             print("dry-run: export folders prepared; nothing uploaded")
@@ -101,6 +126,7 @@ def main() -> None:
         api.create_repo(
             repo_id=space_id,
             repo_type="space",
+            space_sdk=args.space_type,
             private=args.private,
             exist_ok=True,
         )
@@ -108,7 +134,7 @@ def main() -> None:
             repo_id=space_id,
             repo_type="space",
             folder_path=str(space_dir),
-            commit_message="Sync CPU demo Space",
+            commit_message=f"Sync {args.space_type} demo Space",
         )
 
     print("Hugging Face export complete")

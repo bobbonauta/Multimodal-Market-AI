@@ -16,10 +16,14 @@ This avoids maintaining two independent versions of the project.
 huggingface/
     dataset/
         README.md
-    space/
+    space/              Gradio Space (interactive)
         README.md
         app.py
         requirements.txt
+    space_static/       static Space (plain HTML, default)
+        README.md
+        index.template.html
+    static_page.py      builds the static Space from the synthetic demo output
     export_to_hub.py
 ```
 
@@ -94,9 +98,23 @@ The synthetic dataset contains:
 
 Everything is synthetic and reproducible from the GitHub code.
 
-## Space contents
+## Static or Gradio Space
 
-The Space contains:
+`export_to_hub.py` can create two kinds of Space, chosen with `--space-type`:
+
+| Type | Command | Needs |
+|---|---|---|
+| `static` (default) | `python huggingface/export_to_hub.py` | nothing extra, free on every account |
+| `gradio` | `python huggingface/export_to_hub.py --space-type gradio` | a Hugging Face PRO subscription for CPU hosting |
+
+The static Space is a single HTML page with the fusion table, the three chart images and the raw
+CSV files. It needs no server: the demo is deterministic, so its output is computed once, at export
+time, and written into the page. The only thing it cannot do is the "Regenerate" button of the
+Gradio version, which always produced the same result anyway.
+
+## Space contents (Gradio, `--space-type gradio`)
+
+The Gradio Space contains:
 
 - a tiny Gradio UI;
 - the public synthetic demo generator;
