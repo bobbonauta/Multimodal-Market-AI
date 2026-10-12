@@ -61,6 +61,23 @@ def test_static_page_shows_all_teaching_decisions_and_no_leftover_placeholders(
     assert DATASET_URL in page
 
 
+def test_static_page_is_a_demo_with_three_charts_and_the_fusion_table(
+    tmp_path: Path,
+) -> None:
+    page = (_build(tmp_path, "one") / "index.html").read_text(encoding="utf-8")
+
+    for case in ("case_001", "case_002", "case_003"):
+        assert f'<img src="images/{case}.svg"' in page
+        assert f"<td>{case}</td>" in page
+    assert page.count("<img ") == 3
+    assert "<table>" in page
+
+    assert "mock visual adapter" in page
+    assert "https://github.com/bobbonauta/Multimodal-Market-AI" in page
+    assert "Not a trading bot" in page
+    assert "research and education only" in page
+
+
 def test_static_page_is_reproducible(tmp_path: Path) -> None:
     first = _build(tmp_path, "first")
     second = _build(tmp_path, "second")

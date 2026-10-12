@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import shutil
+import subprocess
 import tempfile
 from pathlib import Path
 
@@ -25,13 +26,33 @@ def parse_args() -> argparse.Namespace:
         default="static",
         help=(
             "static: plain HTML page, free on every account. "
-            "gradio: interactive app, needs a Hugging Face PRO subscription for CPU hosting."
+            "gradio: interactive app; Gradio Spaces run on compute, which normally "
+            "needs a paid Hugging Face plan."
         ),
     )
     parser.add_argument("--namespace")
     parser.add_argument("--private", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
+
+
+def require_main_branch() -> None:
+    """Refuse a real publish unless the checkout is on the main branch."""
+    try:
+        branch = subprocess.run(
+            ["git", "-C", str(ROOT), "branch", "--show-current"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        branch = ""
+    if branch != "main":
+        raise SystemExit(
+            "Refusing Hugging Face publish: current Git branch is not main "
+            f"({branch or 'detached HEAD or not a Git checkout'}). "
+            "Merge and verify main before publishing."
+        )
 
 
 def resolve_namespace(api: HfApi, requested: str | None) -> str:
@@ -86,6 +107,8 @@ def prepare_static_space(destination: Path, dataset_id: str) -> None:
 
 def main() -> None:
     args = parse_args()
+    if not args.dry_run:
+        require_main_branch()
     api = HfApi()
     namespace = resolve_namespace(api, args.namespace)
 
@@ -135,6 +158,8 @@ def main() -> None:
             repo_type="space",
             folder_path=str(space_dir),
             commit_message=f"Sync {args.space_type} demo Space",
+            # Hugging Face seeds every new static Space with a style.css; the page has its own.
+            delete_patterns=["style.css"] if args.space_type == "static" else None,
         )
 
     print("Hugging Face export complete")

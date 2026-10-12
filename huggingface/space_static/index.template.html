@@ -88,6 +88,7 @@ td.flat { color: var(--muted); }
 figure { margin: 0; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
 figure img { display: block; width: 100%; height: auto; border-radius: 4px; background: #fff; }
 figcaption { margin-top: 8px; font-size: 0.88rem; color: var(--muted); }
+code { font: 0.9em ui-monospace, "Cascadia Code", Consolas, monospace; }
 ul { padding-left: 20px; margin: 0 0 12px; }
 li { margin-bottom: 4px; }
 footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
@@ -162,6 +163,15 @@ footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line);
       <figcaption>case_003 &mdash; down-trending teaching case</figcaption>
     </figure>
   </div>
+
+  <h2>The mock visual adapter</h2>
+  <p>In a real setup, a vision model would look at each chart image and answer with a direction.
+  Here a small stand-in plays that part, so the demo runs anywhere with no model and no GPU. It
+  does <strong>not</strong> read the image: it measures the price change over the last 12 closes
+  (<code>mock_visual_score</code>) and turns it into <strong>+1</strong> above +0.3%,
+  <strong>&minus;1</strong> below &minus;0.3%, and <strong>0</strong> in between. A real model would
+  fill the same <code>visual_signal</code> column. It would first have to show that it adds
+  information over a plain deterministic baseline.</p>
 
   <h2>Why it is built this way</h2>
   <ul>
