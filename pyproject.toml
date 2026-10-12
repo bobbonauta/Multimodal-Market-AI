@@ -39,13 +39,11 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "markdown-it-py>=3.0",
   "pytest>=8.0",
   "ruff>=0.6",
 ]
 hf = [
   "huggingface_hub>=0.30",
-  "markdown-it-py>=3.0",
 ]
 
 [project.urls]

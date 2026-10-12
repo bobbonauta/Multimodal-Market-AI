@@ -264,20 +264,22 @@ See the demo without installing anything:
 - [Static demo Space](https://huggingface.co/spaces/Bobbonauta/multimodal-market-ai-demo)
 - [Synthetic dataset](https://huggingface.co/datasets/Bobbonauta/multimodal-market-ai-synthetic)
 
-Both pages are generated from this README, so they say the same thing as this page.
+The two pages have different jobs: the Space is a quick look at the demo output, the dataset
+page documents the data. This README remains the full description of the project.
 
 The repository includes the export package that builds them:
 
 ```text
 huggingface/
-    dataset/        dataset card metadata
-    space_static/   static demo Space (default, free)
-    space/          Gradio demo Space (needs a Hugging Face PRO subscription)
+    dataset/        dataset card
+    space_static/   static demo Space (default)
+    space/          optional Gradio Space
     export_to_hub.py
 ```
 
 GitHub remains the canonical source. Hugging Face is an export/discovery surface, not a second
-independent codebase.
+independent codebase. The order is always: branch, review, merge into `main`, CI green on `main`,
+and only then export from `main`. The export script refuses a real publish from any other branch.
 
 With a Hugging Face token that has **write** permission:
 

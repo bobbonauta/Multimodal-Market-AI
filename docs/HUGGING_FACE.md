@@ -5,7 +5,7 @@ GitHub is the canonical source for Multimodal Market AI.
 Hugging Face is used as a discovery and demo surface for:
 
 1. the small synthetic multimodal dataset;
-2. a CPU-only Space showing the same demo;
+2. a static Space showing the demo output at a glance;
 3. future public adapters or model cards when there is something safe and useful to publish.
 
 This avoids maintaining two independent versions of the project.
@@ -15,44 +15,45 @@ This avoids maintaining two independent versions of the project.
 ```text
 huggingface/
     dataset/
-        frontmatter.yml     dataset card metadata (license, tags, size)
-    space/                  Gradio Space (interactive)
+        README.md           dataset card
+    space/              Gradio Space (interactive)
         README.md
         app.py
         requirements.txt
-    space_static/           static Space (plain HTML, default)
-        frontmatter.yml     Space card metadata (sdk: static, app_file)
-        index.template.html page wrapper: styles and the mermaid script
-    static_page.py          turns the root README.md into the Space page and the cards
+    space_static/       static Space (plain HTML, default)
+        README.md
+        index.template.html
+    static_page.py      builds the static Space from the synthetic demo output
     export_to_hub.py
 ```
 
 The export script assembles the Hugging Face repositories from the current GitHub checkout.
 
-## One README, three pages
+## Three pages, three jobs
 
-The root `README.md` is the only place where the project text is written. The export builds from it:
+The pages do not copy each other, and none of them copies the root `README.md`.
 
-| Hugging Face page | Built as |
+| Page | Job |
 |---|---|
-| Dataset card | `dataset/frontmatter.yml` + the README text |
-| Static Space card | `space_static/frontmatter.yml` + the README text |
-| Static Space page (`index.html`) | the README rendered to HTML inside `index.template.html` |
+| GitHub `README.md` | explains the whole project |
+| Hugging Face dataset card (`dataset/README.md`) | describes the data only: what is in it, the schema, how it is generated, its limits, its license |
+| Hugging Face static Space (`space_static/`) | shows the demo at a glance: the pipeline, the fusion table, the three charts, the mock visual adapter and `LONG` / `WAIT` / `SHORT` |
 
-So the Hugging Face pages say exactly what the GitHub page says. They differ only in two ways:
+Each Hugging Face page links back to the canonical GitHub repository, and the Space links to the
+dataset.
 
-- **Look.** The Space page has its own light/dark styling. The cards use the Hub's own rendering.
-- **Link targets.** A link such as `docs/ROADMAP.md` only works inside the GitHub repository, so on
-  Hugging Face it points to the same file on GitHub. The three chart images are copied next to the
-  page and linked from there.
+## Publishing order
 
-Nothing else is rewritten: code blocks stay as written. To change what the Hugging Face pages say,
-edit `README.md` and run the export again; there is no second copy to keep in sync.
+Hugging Face is exported from `main`, after the change is merged and CI is green on `main`:
 
-The README's diagram is a `mermaid` block. GitHub draws it itself. The Space page draws it with
-mermaid.js, which the visitor's browser loads from a CDN (jsDelivr, pinned to one version). If that
-script cannot load, the diagram source stays on the page as text. The dataset card does not draw
-it: the Hub's card renderer shows the same `mermaid` block as plain source code.
+1. work on a branch;
+2. test and review it;
+3. merge it into `main`;
+4. check that CI on `main` is green;
+5. export to Hugging Face from `main`.
+
+Never export from a branch that has not been merged. `export_to_hub.py` enforces this with one
+check: a real export refuses to run when the checked-out Git branch is not `main`.
 
 ## Requirements
 
@@ -73,6 +74,8 @@ environment. Never commit the token.
 python huggingface/export_to_hub.py --dry-run
 ```
 
+`--dry-run` builds the export folders and uploads nothing, so it works on any branch.
+
 The default repository names are:
 
 ```text
@@ -90,8 +93,16 @@ python huggingface/export_to_hub.py \
 
 ## Upload
 
+From a clean checkout of `main`:
+
 ```bash
 python huggingface/export_to_hub.py
+```
+
+On any other branch the script stops before it contacts Hugging Face:
+
+```text
+Refusing Hugging Face publish: current Git branch is not main (...). Merge and verify main before publishing.
 ```
 
 The script:
@@ -119,7 +130,7 @@ The synthetic dataset contains:
 - `market.csv`;
 - `fusion_table.csv`;
 - three generated SVG chart images;
-- a dataset card (the project README, see above).
+- a dataset card (`dataset/README.md`).
 
 Everything is synthetic and reproducible from the GitHub code.
 
@@ -130,12 +141,12 @@ Everything is synthetic and reproducible from the GitHub code.
 | Type | Command | Needs |
 |---|---|---|
 | `static` (default) | `python huggingface/export_to_hub.py` | nothing extra, free on every account |
-| `gradio` | `python huggingface/export_to_hub.py --space-type gradio` | a Hugging Face PRO subscription for CPU hosting |
+| `gradio` | `python huggingface/export_to_hub.py --space-type gradio` | compute; Gradio Spaces normally need a paid plan (a free account may only have limited options such as ZeroGPU) |
 
-The static Space is a single HTML page: the project README, with the three chart images and the raw
-CSV files next to it. It needs no server: the demo is deterministic, so its output is computed once,
-at export time, and written into the Space. The only thing it cannot do is the "Regenerate" button
-of the Gradio version, which always produced the same result anyway.
+The static Space is a single HTML page with the fusion table, the three chart images and the raw
+CSV files. It needs no server: the demo is deterministic, so its output is computed once, at export
+time, and written into the page. The only thing it cannot do is the "Regenerate" button of the
+Gradio version, which always produced the same result anyway.
 
 The static export removes the `style.css` that Hugging Face puts in every new static Space, because
 the page carries its own styles.
