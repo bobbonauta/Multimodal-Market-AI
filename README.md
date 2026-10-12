@@ -259,12 +259,20 @@ If an input did not exist at the decision time, it cannot be used.
 
 ## Hugging Face
 
-The repository now includes an export package for Hugging Face:
+See the demo without installing anything:
+
+- [Static demo Space](https://huggingface.co/spaces/Bobbonauta/multimodal-market-ai-demo)
+- [Synthetic dataset](https://huggingface.co/datasets/Bobbonauta/multimodal-market-ai-synthetic)
+
+Both pages are generated from this README, so they say the same thing as this page.
+
+The repository includes the export package that builds them:
 
 ```text
 huggingface/
-    dataset/        synthetic-demo dataset card
-    space/          CPU demo Space
+    dataset/        dataset card metadata
+    space_static/   static demo Space (default, free)
+    space/          Gradio demo Space (needs a Hugging Face PRO subscription)
     export_to_hub.py
 ```
 

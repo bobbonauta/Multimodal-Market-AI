@@ -1,0 +1,10 @@
+license: apache-2.0
+pretty_name: Multimodal Market AI Synthetic Demo
+size_categories:
+- n<1K
+tags:
+- finance
+- synthetic
+- multimodal
+- time-series
+- causal-inference

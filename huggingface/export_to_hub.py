@@ -8,11 +8,12 @@ import tempfile
 from pathlib import Path
 
 from huggingface_hub import HfApi
-from static_page import build_static_space
+from static_page import build_card, build_static_space
 
 from multimodal_market_ai.synthetic_demo import write_demo
 
 ROOT = Path(__file__).resolve().parents[1]
+README = ROOT / "README.md"
 
 
 def parse_args() -> argparse.Namespace:
@@ -44,7 +45,11 @@ def resolve_namespace(api: HfApi, requested: str | None) -> str:
 def prepare_dataset(destination: Path) -> None:
     destination.mkdir(parents=True, exist_ok=True)
     write_demo(destination)
-    shutil.copy2(ROOT / "huggingface" / "dataset" / "README.md", destination / "README.md")
+    card = build_card(
+        ROOT / "huggingface" / "dataset" / "frontmatter.yml",
+        README.read_text(encoding="utf-8"),
+    )
+    (destination / "README.md").write_text(card, encoding="utf-8", newline="\n")
 
 
 def prepare_space(destination: Path) -> None:
@@ -72,16 +77,12 @@ def prepare_space(destination: Path) -> None:
     synthetic_path.write_text(text, encoding="utf-8")
 
 
-def prepare_static_space(destination: Path, dataset_id: str) -> None:
-    """Build the HTML-only Space from a fresh run of the synthetic demo."""
+def prepare_static_space(destination: Path) -> None:
+    """Build the HTML-only Space from the README and a fresh run of the synthetic demo."""
     with tempfile.TemporaryDirectory(prefix="mma-hf-demo-") as demo:
         demo_dir = Path(demo)
         write_demo(demo_dir)
-        build_static_space(
-            demo_dir,
-            destination,
-            dataset_url=f"https://huggingface.co/datasets/{dataset_id}",
-        )
+        build_static_space(demo_dir, destination, README.read_text(encoding="utf-8"))
 
 
 def main() -> None:
@@ -102,7 +103,7 @@ def main() -> None:
 
         prepare_dataset(dataset_dir)
         if args.space_type == "static":
-            prepare_static_space(space_dir, dataset_id)
+            prepare_static_space(space_dir)
         else:
             prepare_space(space_dir)
 
@@ -135,6 +136,8 @@ def main() -> None:
             repo_type="space",
             folder_path=str(space_dir),
             commit_message=f"Sync {args.space_type} demo Space",
+            # Hugging Face seeds a new static Space with a default style.css the page never uses.
+            delete_patterns=["style.css"] if args.space_type == "static" else None,
         )
 
     print("Hugging Face export complete")

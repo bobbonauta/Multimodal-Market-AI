@@ -1,13 +1,12 @@
 import importlib.util
+import re
 from pathlib import Path
 from types import ModuleType
-
-import pandas as pd
 
 from multimodal_market_ai.synthetic_demo import write_demo
 
 ROOT = Path(__file__).resolve().parents[1]
-DATASET_URL = "https://huggingface.co/datasets/example/multimodal-market-ai-synthetic"
+README = (ROOT / "README.md").read_text(encoding="utf-8")
 
 
 def _load_static_page() -> ModuleType:
@@ -21,15 +20,27 @@ def _load_static_page() -> ModuleType:
     return module
 
 
-def _build(tmp_path: Path, name: str) -> Path:
+def _build(tmp_path: Path, name: str, readme: str = README) -> Path:
     demo_dir = tmp_path / f"{name}_demo"
     space_dir = tmp_path / f"{name}_space"
     write_demo(demo_dir)
-    _load_static_page().build_static_space(demo_dir, space_dir, DATASET_URL)
+    _load_static_page().build_static_space(demo_dir, space_dir, readme)
     return space_dir
 
 
-def test_static_space_contains_page_data_and_images(tmp_path: Path) -> None:
+def _headings(markdown: str) -> list[str]:
+    """Heading texts of a Markdown document, ignoring code fences."""
+    found: list[str] = []
+    in_fence = False
+    for line in markdown.split("\n"):
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+        elif not in_fence and (match := re.match(r"#{1,6} (.+)", line)):
+            found.append(match[1].strip())
+    return found
+
+
+def test_static_space_contains_page_card_data_and_images(tmp_path: Path) -> None:
     space = _build(tmp_path, "one")
 
     for relative in (
@@ -42,52 +53,77 @@ def test_static_space_contains_page_data_and_images(tmp_path: Path) -> None:
         "images/case_003.svg",
     ):
         assert (space / relative).is_file(), relative
+    assert not (space / "style.css").exists()
 
-    readme = (space / "README.md").read_text(encoding="utf-8")
-    assert "sdk: static" in readme
-    assert "app_file: index.html" in readme
+    card = (space / "README.md").read_text(encoding="utf-8")
+    assert card.startswith("---\n")
+    assert "sdk: static" in card
+    assert "app_file: index.html" in card
 
 
-def test_static_page_shows_all_teaching_decisions_and_no_leftover_placeholders(
-    tmp_path: Path,
-) -> None:
+def test_page_and_card_carry_every_readme_heading(tmp_path: Path) -> None:
+    space = _build(tmp_path, "one")
+    page = (space / "index.html").read_text(encoding="utf-8")
+    card = (space / "README.md").read_text(encoding="utf-8")
+    module = _load_static_page()
+
+    headings = _headings(README)
+    assert len(headings) > 10  # the README really has its sections
+    for heading in headings:
+        assert f"{heading}</h" in page.replace("&amp;", "&"), heading
+        assert heading in card, heading
+
+    # In-page anchors keep working: [status badge](#project-status) needs this id.
+    assert 'id="project-status"' in page
+    assert module._slug("What is a fusion table?") == "what-is-a-fusion-table"
+
+
+def test_readme_diagram_is_kept_for_mermaid(tmp_path: Path) -> None:
     page = (_build(tmp_path, "one") / "index.html").read_text(encoding="utf-8")
 
-    for decision in ("LONG", "WAIT", "SHORT"):
-        assert f'<span class="badge {decision.lower()}">{decision}</span>' in page
+    assert '<pre class="mermaid">flowchart LR' in page
+    assert "A[Market data] --&gt; B[Deterministic extractor]" in page
 
-    assert "<!--FUSION_TABLE-->" not in page
-    assert "{{DATASET_URL}}" not in page
-    assert DATASET_URL in page
+
+def test_no_relative_link_or_image_is_left_broken(tmp_path: Path) -> None:
+    space = _build(tmp_path, "one")
+    page = (space / "index.html").read_text(encoding="utf-8")
+    card = (space / "README.md").read_text(encoding="utf-8")
+
+    for target in re.findall(r'(?:href|src)="([^"]+)"', page):
+        assert target.startswith(("https://", "#", "images/")), target
+    for target in re.findall(r"\]\(([^)\s]+)\)", card):
+        assert target.startswith(("https://", "#", "images/")), target
+
+    for image in re.findall(r'src="(images/[^"]+)"', page):
+        assert (space / image).is_file(), image
+    assert "https://github.com/bobbonauta/Multimodal-Market-AI/blob/main/docs/ROADMAP.md" in page
+
+
+def test_card_changes_nothing_but_link_targets() -> None:
+    module = _load_static_page()
+    card_body = module.rewrite_markdown_links(README)
+
+    def blank_targets(text: str) -> str:
+        return re.sub(r"\]\([^)\s]+\)", "](X)", text)
+
+    assert card_body.count("\n") == README.count("\n")
+    assert blank_targets(card_body) == blank_targets(README)
+    # Code stays exactly as written: the install command contains "[dev]" but no link.
+    assert 'pip install -e ".[dev]"' in card_body
 
 
 def test_static_page_is_reproducible(tmp_path: Path) -> None:
     first = _build(tmp_path, "first")
     second = _build(tmp_path, "second")
 
-    assert (first / "index.html").read_bytes() == (second / "index.html").read_bytes()
+    for name in ("index.html", "README.md"):
+        assert (first / name).read_bytes() == (second / name).read_bytes()
 
 
-def test_fusion_rows_escape_html() -> None:
-    fusion = pd.DataFrame(
-        [
-            {
-                "case_id": "<script>alert(1)</script>",
-                "decision_ts": "2026-01-02 05:00:00+00:00",
-                "trend_signal": 1,
-                "momentum_signal": 0,
-                "structure_signal": -1,
-                "mock_visual_score": 0.0188,
-                "visual_signal": 1,
-                "det_signal": 1,
-                "decision": "LONG",
-            }
-        ]
-    )
+def test_raw_html_in_the_readme_is_not_passed_through(tmp_path: Path) -> None:
+    hostile = "# Title\n\n<script>alert(1)</script>\n\n[x](docs/A.md)\n"
+    page = (_build(tmp_path, "one", readme=hostile) / "index.html").read_text(encoding="utf-8")
 
-    rows = _load_static_page().render_fusion_rows(fusion)
-
-    assert "<script>" not in rows
-    assert "&lt;script&gt;" in rows
-    assert "+1" in rows
-    assert "-1" in rows
+    assert "<script>alert(1)</script>" not in page
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in page
