@@ -1,0 +1,4 @@
+case_id,decision_ts,source_end_ts,trend_signal,momentum_signal,structure_signal,mock_visual_score,visual_signal,image_path,det_score,det_active_signals,det_signal,decision
+case_001,2026-01-02 05:00:00+00:00,2026-01-02 05:00:00+00:00,1,1,1,0.018796,1,images/case_001.svg,1.0,3,1,LONG
+case_002,2026-01-03 11:00:00+00:00,2026-01-03 11:00:00+00:00,0,0,-1,-0.00236,0,images/case_002.svg,-1.0,1,-1,WAIT
+case_003,2026-01-04 17:00:00+00:00,2026-01-04 17:00:00+00:00,-1,-1,-1,-0.018807,-1,images/case_003.svg,-1.0,3,-1,SHORT

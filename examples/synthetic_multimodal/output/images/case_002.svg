@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="320" viewBox="0 0 640 320">
+<rect width="100%" height="100%" fill="white"/>
+<text x="44" y="24" font-family="sans-serif" font-size="16">Synthetic case 2</text>
+<line x1="44" y1="38.00" x2="622" y2="38.00" stroke="#dddddd" stroke-width="1"/>
+<line x1="44" y1="100.00" x2="622" y2="100.00" stroke="#dddddd" stroke-width="1"/>
+<line x1="44" y1="162.00" x2="622" y2="162.00" stroke="#dddddd" stroke-width="1"/>
+<line x1="44" y1="224.00" x2="622" y2="224.00" stroke="#dddddd" stroke-width="1"/>
+<line x1="44" y1="286.00" x2="622" y2="286.00" stroke="#dddddd" stroke-width="1"/>
+<polyline points="44.00,140.62 74.42,226.14 104.84,132.07 135.26,217.59 165.68,123.52 196.11,209.03 226.53,114.97 256.95,200.48 287.37,106.41 317.79,191.93 348.21,97.86 378.63,183.38 409.05,89.31 439.47,174.83 469.89,209.03 500.32,187.66 530.74,221.86 561.16,200.48 591.58,234.69 622.00,213.31" fill="none" stroke="#222222" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="44" y="310" font-family="sans-serif" font-size="11">Synthetic data — generated locally, no real market source</text>
+</svg>

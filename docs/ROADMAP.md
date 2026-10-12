@@ -19,6 +19,9 @@ A checked box `[x]` means that part exists publicly. An empty box `[ ]` means it
 - [x] Beginner-friendly multi-signal theory guide
 - [x] Public deterministic multi-signal combiner
 - [x] Runnable deterministic model example
+- [x] CPU-only synthetic multimodal demo
+- [x] Public model-arena metrics
+- [x] Hugging Face export layout
 - [x] Failure-modes / lessons-learned guide
 - [x] Public/private rule: open workflow, closed strategy
 
@@ -37,8 +40,6 @@ A checked box `[x]` means that part exists publicly. An empty box `[ ]` means it
 - [x] Feature-level causal input audit
 - [ ] Automated deterministic-freeze report
 
-The goal of this phase is simple: prove that the deterministic/data path is causal and reproducible before it becomes the base for model comparison.
-
 ## Phase 2 — Candidate research and experiment provenance
 
 - [x] Public specification for causal candidate manifests
@@ -46,8 +47,6 @@ The goal of this phase is simple: prove that the deterministic/data path is caus
 - [ ] Candidate-manifest reference implementation
 - [ ] Automated leakage/candidate audit report
 - [ ] Reusable inference/cache keys
-
-Candidate selection is a research tool around the operational pipeline. It is not a mandatory extra operational stage.
 
 ## Phase 3 — External-system integration
 
@@ -59,17 +58,15 @@ Candidate selection is a research tool around the operational pipeline. It is no
 - [ ] Multi-symbol integration helper
 - [ ] Bridge test proving transport without strategy duplication
 
-The integration layer should let a user keep the original bot private and mostly unchanged.
-
 ## Phase 4 — Rendering and multimodal input
 
-- [ ] Strategy-agnostic chart renderer
+- [x] Lightweight strategy-agnostic SVG renderer for the synthetic demo
+- [x] Public synthetic image + fusion-table demo set
+- [ ] Production chart-renderer interface
 - [ ] Multi-image / multi-timeframe sample format
 - [ ] Renderer manifest + hash
 - [ ] Visual input masking rules
-- [ ] Public synthetic benchmark set
-
-Visual/multimodal processing is optional. It should be added only when it improves or validates one of the four operational stages.
+- [ ] Larger public synthetic benchmark set
 
 ## Phase 5 — Model adapters
 
@@ -80,16 +77,8 @@ Planned model families include:
 - [ ] Gemma multimodal families where licensing permits
 - [ ] other open multimodal models proposed by contributors
 
-Each adapter should explain:
-
-- exact model/revision;
-- memory requirements;
-- input format;
-- output format;
-- checkpoint/resume support;
-- license limits.
-
-No model family is the default final choice merely because an adapter exists.
+Each adapter should document model revision, memory needs, input/output contracts,
+checkpoint/resume behaviour and license limits.
 
 ## Phase 6 — Frozen representations and fine-tuning
 
@@ -104,26 +93,18 @@ No model family is the default final choice merely because an adapter exists.
 
 ## Phase 7 — Decision models
 
-- [ ] Generic `LONG / SHORT / WAIT` example decision interface
+- [x] Generic `LONG / SHORT / WAIT` teaching interface
+- [x] Deterministic + visual fusion-table teaching example
 - [ ] Extended typed `MarketState`
-- [ ] visual + numerical fusion interface
+- [ ] Production visual + numerical fusion interface
 - [ ] logistic-regression baseline
 - [ ] gradient-boosting baseline
 - [ ] small MLP baseline
 - [ ] optional compact reasoning-model interface
 
-The decision layer should clearly separate:
-
-- a signal that does not vote;
-- missing/unavailable information;
-- final `WAIT`;
-- any longer-lived internal state used by the caller.
-
-Candidate models should be compared only after the operational contract and deterministic core are frozen.
-
 ## Phase 8 — Evaluation
 
-- [ ] Classification/regression metrics
+- [ ] General classification/regression report helpers
 - [ ] R-multiple distribution reports
 - [ ] expectancy / profit factor / drawdown
 - [ ] asymmetric payoff analysis
@@ -144,10 +125,11 @@ Candidate models should be compared only after the operational contract and dete
 - [ ] Sanitized forward-audit export
 - [ ] Frozen-core vs live-output replay comparison
 
-This phase watches a live feed without letting the research layer place orders.
+## Phase 10 — Community and distribution
 
-## Phase 10 — Community hardware matrix
-
+- [x] Hugging Face dataset card/export package
+- [x] Hugging Face CPU Space package
+- [ ] Automated GitHub -> Hugging Face release sync
 - [ ] CPU-only benchmark
 - [ ] NVIDIA 8–12 GB class
 - [ ] NVIDIA 16–24 GB class
@@ -158,15 +140,16 @@ This phase watches a live feed without letting the research layer place orders.
 
 ## Good first tasks
 
-1. Build three simple public signals and combine them with the deterministic helper.
-2. Map the deterministic output to a simple `LONG / SHORT / WAIT` teaching example.
-3. Add a prefix-invariance audit helper.
-4. Add a public CSV/Parquet market-data example.
-5. Add an MT4/MT5 read-only bridge that transports a decision without rebuilding the strategy.
-6. Add a simple statistical baseline.
-7. Add a chart renderer only after the numerical path is stable.
-8. Add a frozen-VLM cache example.
-9. Add a read-only append-only journal.
-10. Improve tests around market-session boundaries and history revisions.
+1. Run the synthetic multimodal demo and replace one example signal.
+2. Add a prefix-invariance audit helper.
+3. Add a public CSV/Parquet market-data example.
+4. Add an MT4/MT5 read-only bridge that transports a decision without rebuilding the strategy.
+5. Add a simple statistical baseline.
+6. Replace the mock visual adapter with a real public VLM adapter.
+7. Add a frozen-VLM cache example.
+8. Add a read-only append-only journal.
+9. Improve tests around market-session boundaries and history revisions.
+10. Add community hardware measurements.
 
-Start with [Operational pipeline](OPERATIONAL_PIPELINE.md), then [Multi-signal and deterministic model](MULTI_SIGNAL_AND_DETERMINISTIC_MODEL.md), then [Deterministic freeze protocol](DETERMINISTIC_FREEZE_PROTOCOL.md).
+Start with the repository README and the
+[Synthetic multimodal demo](../examples/synthetic_multimodal/README.md).

@@ -42,6 +42,9 @@ dev = [
   "pytest>=8.0",
   "ruff>=0.6",
 ]
+hf = [
+  "huggingface_hub>=0.30",
+]
 
 [project.urls]
 Homepage = "https://github.com/bobbonauta/Multimodal-Market-AI"
