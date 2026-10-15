@@ -29,10 +29,10 @@ that path. They are not separate mandatory pipelines.
 - three generated synthetic chart images;
 - deterministic + mock-visual fusion table;
 - `LONG / WAIT / SHORT` teaching decisions;
-- published aggregate multimodal-arena metrics;
+- published aggregate results from adapter-training and large-sample visual arenas;
 - Hugging Face dataset/Space export package.
 
-## What the new synthetic demo proves
+## What the synthetic demo proves
 
 A new user can clone the repository and run:
 
@@ -55,9 +55,13 @@ It is a wiring/contract example, not a trading strategy.
 
 ## Model-research status
 
-The public repository includes aggregate results from a completed multimodal arena.
+The public repository now includes aggregate, public-safe results from two distinct multimodal
+experiments.
 
-The results show that:
+### Adapter-training arena
+
+The controlled fine-tuning arena reports final holdout macro-F1 after validation-only checkpoint
+selection. It showed that:
 
 - model size did not rank model quality;
 - some adapters improved strongly;
@@ -68,20 +72,39 @@ The results show that:
 
 See [MODEL_ARENA_RESULTS.md](MODEL_ARENA_RESULTS.md).
 
+### Large-sample visual arena — October 2026
+
+A second experiment evaluated **5 open VLM configurations × 1,000 frozen cases**, producing
+**5,000/5,000 valid outputs** across two 500-case tranches per model.
+
+The public report shows aggregate agreement, 95% confidence intervals, internal consistency and
+measured throughput. The deterministic comparison is explicitly treated as a reference anchor,
+not ground truth. Private task meanings, cases, strategy rules and model artifacts remain closed.
+
+The two tranches produced closely aligned aggregate behaviour and an independent recomputation of
+all 5,000 outputs found zero discrepancies in the published aggregate statistics.
+
+See [LARGE_SAMPLE_VISUAL_ARENA_2026_10.md](LARGE_SAMPLE_VISUAL_ARENA_2026_10.md).
+
+The metrics from these two arenas are not directly interchangeable: adapted holdout macro-F1 and
+large-sample reference agreement answer different research questions.
+
 ## Hugging Face status
 
 The repository contains:
 
 ```text
 huggingface/dataset/
+huggingface/space_static/
 huggingface/space/
 huggingface/export_to_hub.py
 ```
 
-GitHub is the canonical source.
+The static Space is the default public demo; the Gradio version remains optional.
 
-A Hugging Face account/token with write permission is required for the actual upload. The current
-export package deliberately contains only public-safe synthetic material.
+GitHub is the canonical source. A real Hugging Face export is allowed only from `main`; the export
+script refuses publication from another Git branch. The export package deliberately contains only
+public-safe synthetic material and public aggregate research summaries.
 
 See [HUGGING_FACE.md](HUGGING_FACE.md).
 
@@ -105,6 +128,7 @@ This repository does not claim that:
 - the framework is profitable;
 - the synthetic decisions are useful trading signals;
 - a model-arena winner is automatically a deployment choice;
+- agreement with a deterministic reference is ground-truth accuracy;
 - visual AI always beats numerical models;
 - one model family is best for every market;
 - every private research result reproduces on public synthetic data.
