@@ -200,8 +200,10 @@ Read: [Deterministic freeze protocol](docs/DETERMINISTIC_FREEZE_PROTOCOL.md).
 
 ## Real multimodal research results
 
-The repository publishes aggregate metrics from a completed internal model arena while keeping
-strategy rules, private features, datasets and adapter weights closed.
+The repository publishes aggregate metrics from multiple internal model arenas while keeping
+strategy rules, private features, datasets, task meanings and adapter weights closed.
+
+### Adapter-training arena
 
 | Model | Adapted holdout macro-F1 |
 |---|---:|
@@ -225,6 +227,34 @@ Important lessons from that arena:
 
 Full methodology, base scores, subtasks, GPU time and cost:
 [Multimodal model arena — public results](docs/MODEL_ARENA_RESULTS.md).
+
+### Large-sample visual arena — October 2026
+
+A second arena evaluated **5 open VLM configurations × 1,000 frozen cases**: **5,000/5,000 valid
+outputs**, split into two 500-case tranches per model. The comparison uses a binary deterministic
+reference as an anchor, **not as ground truth**, and the private meaning of Task A / Task B remains
+closed.
+
+| Model | Task A agreement | Task B agreement | sec/case |
+|---|---:|---:|---:|
+| Qwen3-VL 8B | **0.603** | 0.414 | 1.83 |
+| Qwen3-VL 2B | 0.564 | 0.476 | **1.03** |
+| Qwen3-VL 4B | 0.556 | 0.480 | 1.48 |
+| InternVL 3.5 2B (R2) | 0.549 | 0.395 | 1.06 |
+| Qwen2.5-VL 7B | 0.501 | **0.496** | 1.80 |
+
+Key observations:
+
+- Qwen3-VL 8B was the only candidate whose Task A 95% interval stayed entirely above 0.55;
+- Task B remained difficult for every candidate;
+- the two 500-case tranches stayed close, with main agreement differences within roughly 0.03;
+- an independent recomputation of all 5,000 outputs found zero discrepancies in the published
+  aggregate statistics;
+- these agreement numbers are **not directly comparable** with the adapted holdout macro-F1 table
+  above because the experiment, population and metric are different.
+
+Full public-safe methodology and confidence intervals:
+[Large-sample visual arena — October 2026](docs/LARGE_SAMPLE_VISUAL_ARENA_2026_10.md).
 
 These are research metrics, **not trading-performance claims**.
 
@@ -342,8 +372,9 @@ Start here:
 4. [Deterministic freeze protocol](docs/DETERMINISTIC_FREEZE_PROTOCOL.md)
 5. [Integrating an existing bot or EA](docs/INTEGRATING_EXISTING_BOTS.md)
 6. [Multimodal model arena results](docs/MODEL_ARENA_RESULTS.md)
-7. [Hugging Face export](docs/HUGGING_FACE.md)
-8. [Lessons learned](docs/LESSONS_LEARNED.md)
+7. [Large-sample visual arena](docs/LARGE_SAMPLE_VISUAL_ARENA_2026_10.md)
+8. [Hugging Face export](docs/HUGGING_FACE.md)
+9. [Lessons learned](docs/LESSONS_LEARNED.md)
 
 More technical material:
 

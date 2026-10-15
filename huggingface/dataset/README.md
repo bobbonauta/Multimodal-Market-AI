@@ -75,6 +75,19 @@ python examples/synthetic_multimodal/run_demo.py
 - This is an educational engineering dataset. It is not a trading dataset and not evidence of
   profitability. Do not train or evaluate a trading system on it.
 
+## Related public research
+
+This tiny dataset is only a wiring example. The project separately publishes public-safe aggregate
+results from larger internal multimodal arenas without releasing private strategy rules, private
+cases or adapter weights.
+
+The latest October 2026 visual arena evaluated **5 open VLM configurations × 1,000 frozen cases**
+for **5,000/5,000 valid outputs**. The public report exposes aggregate agreement, confidence
+intervals, tranche stability and measured throughput while keeping the private task meaning closed.
+
+Full results:
+`https://github.com/bobbonauta/Multimodal-Market-AI/blob/main/docs/LARGE_SAMPLE_VISUAL_ARENA_2026_10.md`
+
 ## License
 
 Apache-2.0, the same as the code.
