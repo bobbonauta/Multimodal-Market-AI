@@ -381,6 +381,7 @@ More technical material:
 - [Architecture](docs/ARCHITECTURE.md)
 - [Project status](docs/PROJECT_STATUS.md)
 - [Public research workflow](docs/PUBLIC_WORKFLOW_SYNC.md)
+- [Practical research runbook](docs/RESEARCH_RUNBOOK.md) — data quality, frozen comparisons, metrics, audits and publication; public patterns, timeframes and research thresholds are allowed, private indicators remain excluded.
 - [Model adapters](docs/MODEL_ADAPTERS.md)
 - [Fine-tuning guide](docs/FINETUNING_GUIDE.md)
 - [Benchmarking](docs/BENCHMARKING.md)

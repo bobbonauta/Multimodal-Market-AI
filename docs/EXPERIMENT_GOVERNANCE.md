@@ -218,12 +218,16 @@ Updates derived from private research may contribute general engineering lessons
 - proprietary strategy rules;
 - private datasets;
 - private decision records that reconstruct a strategy;
-- private timeframe hierarchies when they reveal the method;
+- private indicator names, definitions, parameters and combinations;
 - private account/broker information;
 - confidential experiment artifacts;
 - private checkpoints/weights when publication is not intended.
 
 Transfer only reusable methodology, sanitized examples and public-safe evidence.
+
+Public pattern terminology, timeframe choices and research thresholds are allowed.
+This does not permit disclosure or reconstruction of the private indicators. Use
+the [research runbook](RESEARCH_RUNBOOK.md) to record experiments and review exports.
 
 The working rule is: **open workflow, closed strategy**.
 

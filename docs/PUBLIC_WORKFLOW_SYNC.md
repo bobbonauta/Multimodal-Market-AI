@@ -257,11 +257,17 @@ Safe public material includes strategy-agnostic:
 - benchmark methodology;
 - failure modes and lessons learned.
 
+Public pattern terminology, timeframe choices and research thresholds may also be
+included. This permission never includes the private system's indicators: do not
+publish their names, formulas, parameters, combinations or implementation. Do not
+guess missing definitions or values. See the [research runbook](RESEARCH_RUNBOOK.md)
+for a practical experiment and publication workflow.
+
 Keep private:
 
 - proprietary setup definitions;
-- exact strategy rules and thresholds;
-- private timeframe hierarchies when they reveal the method;
+- private indicator definitions, names, parameters and combinations;
+- proprietary strategy rules beyond the public pattern/timeframe/threshold scope;
 - private labels/decision history that reconstruct the strategy;
 - private datasets and economic results;
 - private prompts/checkpoints/weights when publication is not intended;

@@ -28,7 +28,8 @@ A public example could use:
 - a middle structural rule;
 - a faster timing rule.
 
-The exact indicators and timeframe choices are replaceable.
+Timeframe choices may be documented explicitly. The private system's indicators,
+their names, formulas, settings and combinations must never be included.
 
 The useful lesson is how to synchronize several time scales without using a bar that was not closed yet.
 
@@ -250,3 +251,19 @@ Otherwise you may compare two different problems without noticing.
 - run the frozen result in read-only live mode.
 
 The goal is not to force everyone to use the same trading idea. The goal is to make **building, replacing, freezing and testing each piece easy and auditable**.
+
+## 13. Pattern annotations and research configuration
+
+Public formation names, such as a pullback, breakout/retest, double top/bottom or
+an engulfing candle, may be used as research annotations. A name alone is not a
+reproducible definition: record the observation time, confirmation time, annotation
+protocol revision and whether the annotation was manual or automated. A formation
+confirmed later cannot be attached to an earlier decision as if it was known then.
+
+Timeframes and research thresholds may be published with units and a clear role
+in the experiment. Mark teaching values as synthetic and choose tuning values on
+train/validation before the final test. Do not invent a private definition from a
+formation name or disclose the private indicators used to recognize it.
+
+Follow the [research runbook](RESEARCH_RUNBOOK.md) for the complete data, benchmark
+and publication procedure.
